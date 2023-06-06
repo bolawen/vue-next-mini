@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "strict": true,         
+    "rootDir": ".",
+    "baseUrl": ".",
+    "target": "es5",
+    "allowJs": false,
+    "outDir": "temp",
+    "sourceMap": false,
+    "module": "esnext",  
+    "skipLibCheck": true,
+    "noImplicitAny":false,
+    "esModuleInterop": true,
+    "noUnusedLocals": false,
+    "removeComments": false,
+    "resolveJsonModule": true,
+    "noUnuseParameters": false,
+    "downlevelIteration": true,
+    "moduleResolution": "node",
+    "lib": ["esnext","dom"],
+    "forceConsistentCasingInFileNames": true,          
+  },
+  "include": [
+    "packages/*/src"
+  ]
+}
