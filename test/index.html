@@ -4,26 +4,12 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vue3</title>
-    <script src="../../../package/vue/core/packages/vue/dist/vue.global.js"></script>
+    <title>vue3-next-mini</title>
+    <script src="../packages/vue/dist/vue.js"></script>
   </head>
   <body>
     <div id="app"></div>
 
-    <script>
-      const { reactive, effect } = Vue;
-
-      const obj = reactive({
-        a: 1,
-      });
-
-      setTimeout(() => {
-        obj.a = 2;
-      }, 2000);
-
-      effect(() => {
-        document.querySelector("#app").innerText = obj.a;
-      });
-    </script>
+    <script></script>
   </body>
 </html>

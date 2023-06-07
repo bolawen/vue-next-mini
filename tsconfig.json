@@ -1,7 +1,6 @@
 {
   "compilerOptions": {
     "strict": true,         
-    "rootDir": ".",
     "baseUrl": ".",
     "target": "es5",
     "allowJs": false,
@@ -14,10 +13,14 @@
     "noUnusedLocals": false,
     "removeComments": false,
     "resolveJsonModule": true,
-    "noUnuseParameters": false,
+    "noUnusedParameters": false,
     "downlevelIteration": true,
     "moduleResolution": "node",
     "lib": ["esnext","dom"],
+    "paths": {
+      "vue": ["packages/vue/src"],
+      "@vue/*": ["packages/*/src"],
+    },
     "forceConsistentCasingInFileNames": true,          
   },
   "include": [
