@@ -4,21 +4,22 @@ const product = {
   quantity: quantity
 };
 
-function computed() {
-  return product.price * product.quantity;
-}
-
-Object.defineProperty(product, 'quantity', {
-  get() {
-    return quantity;
+const proxyProduct = new Proxy(product, {
+  get(target, property, receiver) {
+    return Reflect.get(target, property, receiver);
   },
-  set(value) {
-    quantity = value;
+  set(target, property, value, receiver) {
+    const result = Reflect.set(target, property, value, receiver);
     computed();
+    return result;
   }
 });
 
-product.quantity = 2;
+function computed() {
+  return proxyProduct.price * proxyProduct.quantity;
+}
+
+proxyProduct.quantity = 2;
 console.log(`总价为: ${computed()}`);
-product.quantity = 10;
+proxyProduct.quantity = 10;
 console.log(`总价为: ${computed()}`);
