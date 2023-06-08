@@ -3,19 +3,27 @@
     factory();
 })((function () { 'use strict';
 
+    var quantity = 2;
     var product = {
         price: 10,
-        quantity: 2
+        quantity: quantity
     };
-    var total;
-    function effect() {
-        total = product.price * product.quantity;
+    function computed() {
+        return product.price * product.quantity;
     }
-    effect();
-    console.log("\u603B\u4EF7\u4E3A: ".concat(total));
+    Object.defineProperty(product, 'quantity', {
+        get: function () {
+            return quantity;
+        },
+        set: function (value) {
+            quantity = value;
+            computed();
+        }
+    });
+    product.quantity = 2;
+    console.log("\u603B\u4EF7\u4E3A: ".concat(computed()));
     product.quantity = 10;
-    effect();
-    console.log("\u603B\u4EF7\u4E3A: ".concat(total));
+    console.log("\u603B\u4EF7\u4E3A: ".concat(computed()));
 
 }));
 //# sourceMappingURL=vue.js.map

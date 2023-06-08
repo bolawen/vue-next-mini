@@ -4,9 +4,8 @@ const product = {
   quantity: quantity
 };
 
-let total;
-function effect() {
-  total = product.price * product.quantity;
+function computed() {
+  return product.price * product.quantity;
 }
 
 Object.defineProperty(product, 'quantity', {
@@ -15,10 +14,11 @@ Object.defineProperty(product, 'quantity', {
   },
   set(value) {
     quantity = value;
-    effect();
+    computed();
   }
 });
 
-console.log(`总价为: ${total}`);
+product.quantity = 2;
+console.log(`总价为: ${computed()}`);
 product.quantity = 10;
-console.log(`总价为: ${total}`);
+console.log(`总价为: ${computed()}`);
