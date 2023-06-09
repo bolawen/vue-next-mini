@@ -1,7 +1,10 @@
 let quantity = 2;
 const product = {
   price: 10,
-  quantity: quantity
+  quantity: quantity,
+  a() {
+    console.log(this);
+  }
 };
 
 const proxyProduct = new Proxy(product, {
@@ -19,6 +22,7 @@ function computed() {
   return proxyProduct.price * proxyProduct.quantity;
 }
 
+proxyProduct.a();
 proxyProduct.quantity = 2;
 console.log(`总价为: ${computed()}`);
 proxyProduct.quantity = 10;
