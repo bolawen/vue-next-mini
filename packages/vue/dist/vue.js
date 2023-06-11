@@ -1,34 +1,26 @@
-(function (factory) {
-    typeof define === 'function' && define.amd ? define(factory) :
-    factory();
-})((function () { 'use strict';
+(function (global, factory) {
+    typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
+    typeof define === 'function' && define.amd ? define(['exports'], factory) :
+    (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.Vue = {}));
+})(this, (function (exports) { 'use strict';
 
-    var quantity = 2;
-    var product = {
-        price: 10,
-        quantity: quantity,
-        a: function () {
-            console.log(this);
-        }
-    };
-    var proxyProduct = new Proxy(product, {
-        get: function (target, property, receiver) {
-            return Reflect.get(target, property, receiver);
-        },
-        set: function (target, property, value, receiver) {
-            var result = Reflect.set(target, property, value, receiver);
-            computed();
-            return result;
-        }
-    });
-    function computed() {
-        return proxyProduct.price * proxyProduct.quantity;
+    var mutableHandlers = {};
+
+    var reactiveMap = new WeakMap();
+    function reactive(target) {
+        return createReacttiveObject(target, mutableHandlers, reactiveMap);
     }
-    proxyProduct.a();
-    proxyProduct.quantity = 2;
-    console.log("\u603B\u4EF7\u4E3A: ".concat(computed()));
-    proxyProduct.quantity = 10;
-    console.log("\u603B\u4EF7\u4E3A: ".concat(computed()));
+    function createReacttiveObject(target, baseHandlers, proxyMap) {
+        var existingProxy = proxyMap.get(target);
+        if (existingProxy) {
+            return existingProxy;
+        }
+        var proxy = new Proxy(target, baseHandlers);
+        proxyMap.set(target, proxy);
+        return proxy;
+    }
+
+    exports.reactive = reactive;
 
 }));
 //# sourceMappingURL=vue.js.map

@@ -9,5 +9,14 @@
   </head>
   <body>
     <div id="app"></div>
+    <script>
+      const { reactive } = Vue;
+      const obj = {
+        a: 1,
+        b: 2
+      };
+      const objProxy = reactive(obj);
+      console.log(objProxy);
+    </script>
   </body>
 </html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <dialog id="bolawen-dialog">
+      <p>这是一个很寂寞的天，下着有些伤心的雨！</p>
+      <button id="bolawen-button-confirm">确认</button>
+    </dialog>
+    <button id="bolawen-button">显示</button>
+    <script>
+      const button = document.querySelector('#bolawen-button');
+      const dialog = document.querySelector('#bolawen-dialog');
+      const dialogConfirm = document.querySelector('#bolawen-button-confirm');
+
+      button.addEventListener('click', function () {
+        dialog.showModal();
+      });
+
+      dialogConfirm.addEventListener('click', function () {
+        dialog.close();
+      });
+    </script>
+  </body>
+</html>
