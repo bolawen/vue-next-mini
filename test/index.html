@@ -35,14 +35,26 @@
     </script>
 
     <script>
-      const fun = () => {};
-      const proxy = new Proxy(fun, {
-        get() {
-          return;
+      const object = {
+        a: 1,
+        b: 2
+      };
+      const proxy = new Proxy(object, {
+        get(target, key, receiver) {
+          console.log('访问');
+          return Reflect.get(target, key, receiver);
         },
-        set() {}
+        set(target, key, value, receiver) {
+          console.log('设置');
+          return Reflect.set(target, key, value, receiver);
+        }
       });
-      console.log(proxy);
+
+      console.log(proxy.a);
+      const { a } = proxy;
+      console.log(a);
+      console.log(a);
+      console.log(a);
     </script>
   </body>
 </html>
