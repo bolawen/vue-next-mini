@@ -1,3 +1,4 @@
+import { ComputeRefImpl } from './computed';
 import { Dep, createDep } from './dep';
 
 type KeyToDepMap = Map<any, Dep>;
@@ -7,6 +8,8 @@ export let activeEffect: ReactiveEffect | undefined;
 
 export class ReactiveEffect<T = any> {
   fn: () => T;
+  computed?: ComputeRefImpl<T>;
+
   constructor(fn: () => T) {
     this.fn = fn;
   }
@@ -18,7 +21,6 @@ export class ReactiveEffect<T = any> {
 
 export function trackEffects(dep: Dep) {
   dep.add(activeEffect as ReactiveEffect);
-  console.log(targetMap);
 }
 
 export function track(target: object, key: any) {
@@ -34,6 +36,8 @@ export function track(target: object, key: any) {
   if (!dep) {
     depsMap.set(key, (dep = createDep()));
   }
+
+  console.log(depsMap);
   trackEffects(dep);
 }
 

@@ -15,16 +15,14 @@
     <script>
       const { ref, effect } = Vue;
 
-      const obj = ref({
-        a: 1
-      });
+      const num = ref(0);
 
       effect(() => {
-        document.querySelector('#p1').innerHTML = obj.value.a;
+        document.querySelector('#p1').innerHTML = num.value;
       });
 
       setTimeout(() => {
-        obj.value.a = 2;
+        num.value = 1;
       }, 3000);
     </script>
   </body>

@@ -79,7 +79,6 @@
     }());
     function trackEffects(dep) {
         dep.add(activeEffect);
-        console.log(targetMap);
     }
     function track(target, key) {
         if (!activeEffect) {
@@ -93,6 +92,7 @@
         if (!dep) {
             depsMap.set(key, (dep = createDep()));
         }
+        console.log(depsMap);
         trackEffects(dep);
     }
     function triggerEffect(effect) {
@@ -131,6 +131,16 @@
         _effect.run();
     }
 
+    function isObject(value) {
+        return value !== null && typeof value === 'object';
+    }
+    function hashChanged(value, oldValue) {
+        return !Object.is(value, oldValue);
+    }
+    function isFunction(value) {
+        return typeof value === 'function';
+    }
+
     function createGetter() {
         return function get(target, key, reaceiver) {
             var result = Reflect.get(target, key, reaceiver);
@@ -165,9 +175,91 @@
         proxyMap.set(target, proxy);
         return proxy;
     }
+    var toReactive = function (value) {
+        return isObject(value) ? reactive(value) : value;
+    };
 
+    function ref(value) {
+        return createRef(value, false);
+    }
+    function isRef(r) {
+        return !!(r && r.__v_isRef === true);
+    }
+    function createRef(rawValue, shallow) {
+        if (isRef(rawValue)) {
+            return rawValue;
+        }
+        return new RefImpl(rawValue, shallow);
+    }
+    function trackRefValue(ref) {
+        if (activeEffect) {
+            trackEffects(ref.dep || (ref.dep = createDep()));
+        }
+    }
+    function triggerRefValue(ref) {
+        if (ref.dep) {
+            triggerEffects(ref.dep);
+        }
+    }
+    var RefImpl = /** @class */ (function () {
+        function RefImpl(value, __v_isShallow) {
+            this.__v_isShallow = __v_isShallow;
+            this.dep = undefined;
+            this.__v_isRef = true;
+            this._rawValue = value;
+            this._value = __v_isShallow ? value : toReactive(value);
+        }
+        Object.defineProperty(RefImpl.prototype, "value", {
+            get: function () {
+                trackRefValue(this);
+                return this._value;
+            },
+            set: function (newValue) {
+                if (hashChanged(newValue, this._rawValue)) {
+                    this._rawValue = newValue;
+                    this._value = toReactive(newValue);
+                    triggerRefValue(this);
+                }
+            },
+            enumerable: false,
+            configurable: true
+        });
+        return RefImpl;
+    }());
+
+    var ComputeRefImpl = /** @class */ (function () {
+        function ComputeRefImpl(getter) {
+            this.dep = undefined;
+            this.__v_isRef = true;
+            this.effect = new ReactiveEffect(getter);
+            this.effect.computed = this;
+        }
+        Object.defineProperty(ComputeRefImpl.prototype, "value", {
+            get: function () {
+                trackRefValue(this);
+                this._value = this.effect.run();
+                return this._value;
+            },
+            set: function (newValue) { },
+            enumerable: false,
+            configurable: true
+        });
+        return ComputeRefImpl;
+    }());
+    function computed(getterOrOptions) {
+        var getter;
+        var onlyGetter = isFunction(getterOrOptions);
+        if (onlyGetter) {
+            getter = getterOrOptions;
+        }
+        var cRef = new ComputeRefImpl(getter);
+        return cRef;
+    }
+
+    exports.computed = computed;
     exports.effect = effect;
     exports.reactive = reactive;
+    exports.ref = ref;
 
 }));
 //# sourceMappingURL=vue.js.map

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Document</title>
+    <title>模拟 Computed</title>
     <script src="../packages/vue/dist/vue.js"></script>
   </head>
   <body>
@@ -13,19 +13,23 @@
     </div>
 
     <script>
-      const { ref, effect } = Vue;
+      const { reactive, computed, effect } = Vue;
 
-      const obj = ref({
+      const obj = reactive({
         a: 1
       });
 
-      effect(() => {
-        document.querySelector('#p1').innerHTML = obj.value.a;
+      const computedOjbA = computed(() => {
+        return '键值' + obj.a;
       });
 
       setTimeout(() => {
-        obj.value.a = 2;
-      }, 3000);
+        obj.a = 2;
+      }, 2000);
+
+      effect(() => {
+        document.querySelector('#app').innerText = computedOjbA.value;
+      });
     </script>
   </body>
 </html>
