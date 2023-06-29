@@ -4,12 +4,13 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>模拟 Computed</title>
+    <title>Vue3-Next-Mini Computed 测试用例</title>
     <script src="../packages/vue/dist/vue.js"></script>
   </head>
   <body>
     <div id="app">
       <div id="p1"></div>
+      <div id="p2"></div>
     </div>
 
     <script>
@@ -28,7 +29,8 @@
       }, 2000);
 
       effect(() => {
-        document.querySelector('#app').innerText = computedOjbA.value;
+        document.querySelector('#p1').innerText = computedOjbA.value;
+        document.querySelector('#p2').innerText = computedOjbA.value;
       });
     </script>
   </body>

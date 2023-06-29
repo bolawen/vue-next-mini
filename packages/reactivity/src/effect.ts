@@ -1,22 +1,30 @@
+import { extend } from '@vue/shared';
 import { ComputeRefImpl } from './computed';
 import { Dep, createDep } from './dep';
 
 type KeyToDepMap = Map<any, Dep>;
 const targetMap = new WeakMap<any, KeyToDepMap>();
-
 export let activeEffect: ReactiveEffect | undefined;
+export type EffectScheduler = (...args: any[]) => any;
+export interface ReactiveEffectOptions {
+  lazy?: boolean;
+  scheduler?: EffectScheduler;
+}
 
 export class ReactiveEffect<T = any> {
-  fn: () => T;
   computed?: ComputeRefImpl<T>;
 
-  constructor(fn: () => T) {
+  constructor(
+    public fn: () => T,
+    public scheduler: EffectScheduler | null = null
+  ) {
     this.fn = fn;
   }
   run() {
     activeEffect = this;
     return this.fn();
   }
+  stop() {}
 }
 
 export function trackEffects(dep: Dep) {
@@ -36,19 +44,28 @@ export function track(target: object, key: any) {
   if (!dep) {
     depsMap.set(key, (dep = createDep()));
   }
-
-  console.log(depsMap);
   trackEffects(dep);
 }
 
 export function triggerEffect(effect: ReactiveEffect) {
-  effect.run();
+  if (effect.scheduler) {
+    effect.scheduler();
+  } else {
+    effect.run();
+  }
 }
 
 export function triggerEffects(deps: Dep) {
   const effects = Array.isArray(deps) ? deps : [...deps];
   for (const effect of effects) {
-    triggerEffect(effect);
+    if (effect.computed) {
+      triggerEffect(effect);
+    }
+  }
+  for (const effect of effects) {
+    if (!effect.computed) {
+      triggerEffect(effect);
+    }
   }
 }
 
@@ -64,7 +81,14 @@ export function trigger(target: object, key: any, value: any) {
   triggerEffects(deps);
 }
 
-export function effect<T = any>(fn: () => T) {
+export function effect<T = any>(fn: () => T, options?: ReactiveEffectOptions) {
   const _effect = new ReactiveEffect(fn);
-  _effect.run();
+
+  if (options) {
+    extend(_effect, options);
+  }
+
+  if (!options || !options.lazy) {
+    _effect.run();
+  }
 }
