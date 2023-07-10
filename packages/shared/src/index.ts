@@ -15,3 +15,6 @@ export function isFunction(value: unknown): value is Function {
 }
 
 export const extend = Object.assign;
+
+export const isString = (value: any): value is string =>
+  typeof value === 'string';

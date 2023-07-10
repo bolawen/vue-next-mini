@@ -60,6 +60,9 @@
         return to.concat(ar || Array.prototype.slice.call(from));
     }
 
+    function isArray(data) {
+        return Array.isArray(data);
+    }
     function isObject(value) {
         return value !== null && typeof value === 'object';
     }
@@ -70,6 +73,9 @@
         return typeof value === 'function';
     }
     var extend = Object.assign;
+    var isString = function (value) {
+        return typeof value === 'string';
+    };
 
     var createDep = function (effects) {
         var dep = new Set(effects);
@@ -436,10 +442,69 @@
         return value;
     }
 
+    function isVNode(value) {
+        return value ? value.__v_isVNode === true : false;
+    }
+    function createVNode(type, propsOrChildren, children) {
+        var shapeFlag = isString(type) ? 1 /* ShapeFlags.ELEMENT */ : 0;
+        return createBaseVNode(type, propsOrChildren, children, shapeFlag);
+    }
+    function createBaseVNode(type, props, children, shapeFlag) {
+        var vnode = {
+            __v_isVNode: true,
+            type: type,
+            props: props,
+            children: children,
+            shapeFlag: shapeFlag
+        };
+        normalizeChildren(vnode, children);
+        return vnode;
+    }
+    function normalizeChildren(vnode, children) {
+        var type = 0;
+        if (children === null) {
+            children = null;
+        }
+        else if (isArray(children)) ;
+        else if (typeof children === 'object') ;
+        else if (isFunction(children)) ;
+        else {
+            children = String(children);
+            type = 8 /* ShapeFlags.TEXT_CHILDREN */;
+        }
+        vnode.children = children;
+        vnode.shapeFlag |= type;
+    }
+
+    function h(type, propsOrChildren, children) {
+        var l = arguments.length;
+        if (l === 2) {
+            if (isObject(propsOrChildren) && !Array.isArray(propsOrChildren)) {
+                if (isVNode(propsOrChildren)) {
+                    return createVNode(type, null, [propsOrChildren]);
+                }
+                return createVNode(type, propsOrChildren);
+            }
+            else {
+                return createVNode(type, propsOrChildren);
+            }
+        }
+        else {
+            if (l > 3) {
+                children = Array.prototype.slice.call(arguments, 2);
+            }
+            else if (l === 3 && isVNode(children)) {
+                children = [children];
+            }
+            return createVNode(type, propsOrChildren, children);
+        }
+    }
+
     exports.computed = computed;
     exports.effect = effect;
     exports.flushJobs = flushJobs;
     exports.flushPostFlushCbs = flushPostFlushCbs;
+    exports.h = h;
     exports.queueFlush = queueFlush;
     exports.queueJob = queueJob;
     exports.queuePostFlushCb = queuePostFlushCb;
