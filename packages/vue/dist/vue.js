@@ -307,6 +307,102 @@
         return cRef;
     }
 
+    function normalizeClass(value) {
+        var res = '';
+        if (isString(value)) {
+            res = value;
+        }
+        else if (isArray(value)) {
+            for (var i = 0; i < value.length; i++) {
+                var normalized = normalizeClass(value[i]);
+                if (normalized) {
+                    res += normalized + ' ';
+                }
+            }
+        }
+        else if (isObject(value)) {
+            for (var name_1 in value) {
+                if (value[name_1]) {
+                    res += name_1 + ' ';
+                }
+            }
+        }
+        return res.trim();
+    }
+
+    var Text = Symbol.for('v-text');
+    var Comment = Symbol.for('v-cmt');
+    var Fragment = Symbol.for('v-fgt');
+    function isVNode(value) {
+        return value ? value.__v_isVNode === true : false;
+    }
+    function createVNode(type, props, children) {
+        if (props) {
+            var klass = props.class; props.style;
+            if (klass && !isString(klass)) {
+                props.class = normalizeClass(klass);
+            }
+        }
+        var shapeFlag = isString(type)
+            ? 1 /* ShapeFlags.ELEMENT */
+            : isObject(type)
+                ? 4 /* ShapeFlags.STATEFUL_COMPONENT */
+                : 0;
+        return createBaseVNode(type, props, children, shapeFlag);
+    }
+    function createBaseVNode(type, props, children, shapeFlag) {
+        var vnode = {
+            __v_isVNode: true,
+            type: type,
+            props: props,
+            children: children,
+            shapeFlag: shapeFlag
+        };
+        normalizeChildren(vnode, children);
+        return vnode;
+    }
+    function normalizeChildren(vnode, children) {
+        var type = 0;
+        if (children == null) {
+            children = null;
+        }
+        else if (isArray(children)) {
+            type = 16 /* ShapeFlags.ARRAY_CHILDREN */;
+        }
+        else if (typeof children === 'object') ;
+        else if (isFunction(children)) ;
+        else {
+            children = String(children);
+            type = 8 /* ShapeFlags.TEXT_CHILDREN */;
+        }
+        vnode.children = children;
+        vnode.shapeFlag |= type;
+    }
+
+    function h(type, propsOrChildren, children) {
+        var l = arguments.length;
+        if (l === 2) {
+            if (isObject(propsOrChildren) && !Array.isArray(propsOrChildren)) {
+                if (isVNode(propsOrChildren)) {
+                    return createVNode(type, null, [propsOrChildren]);
+                }
+                return createVNode(type, propsOrChildren);
+            }
+            else {
+                return createVNode(type, propsOrChildren);
+            }
+        }
+        else {
+            if (l > 3) {
+                children = Array.prototype.slice.call(arguments, 2);
+            }
+            else if (l === 3 && isVNode(children)) {
+                children = [children];
+            }
+            return createVNode(type, propsOrChildren, children);
+        }
+    }
+
     var flushIndex = 0;
     var postFlushIndex = 0;
     var isFlushPending = false;
@@ -442,69 +538,17 @@
         return value;
     }
 
-    function isVNode(value) {
-        return value ? value.__v_isVNode === true : false;
-    }
-    function createVNode(type, propsOrChildren, children) {
-        var shapeFlag = isString(type) ? 1 /* ShapeFlags.ELEMENT */ : 0;
-        return createBaseVNode(type, propsOrChildren, children, shapeFlag);
-    }
-    function createBaseVNode(type, props, children, shapeFlag) {
-        var vnode = {
-            __v_isVNode: true,
-            type: type,
-            props: props,
-            children: children,
-            shapeFlag: shapeFlag
-        };
-        normalizeChildren(vnode, children);
-        return vnode;
-    }
-    function normalizeChildren(vnode, children) {
-        var type = 0;
-        if (children === null) {
-            children = null;
-        }
-        else if (isArray(children)) ;
-        else if (typeof children === 'object') ;
-        else if (isFunction(children)) ;
-        else {
-            children = String(children);
-            type = 8 /* ShapeFlags.TEXT_CHILDREN */;
-        }
-        vnode.children = children;
-        vnode.shapeFlag |= type;
-    }
-
-    function h(type, propsOrChildren, children) {
-        var l = arguments.length;
-        if (l === 2) {
-            if (isObject(propsOrChildren) && !Array.isArray(propsOrChildren)) {
-                if (isVNode(propsOrChildren)) {
-                    return createVNode(type, null, [propsOrChildren]);
-                }
-                return createVNode(type, propsOrChildren);
-            }
-            else {
-                return createVNode(type, propsOrChildren);
-            }
-        }
-        else {
-            if (l > 3) {
-                children = Array.prototype.slice.call(arguments, 2);
-            }
-            else if (l === 3 && isVNode(children)) {
-                children = [children];
-            }
-            return createVNode(type, propsOrChildren, children);
-        }
-    }
-
+    exports.Comment = Comment;
+    exports.Fragment = Fragment;
+    exports.Text = Text;
     exports.computed = computed;
+    exports.createVNode = createVNode;
     exports.effect = effect;
     exports.flushJobs = flushJobs;
     exports.flushPostFlushCbs = flushPostFlushCbs;
     exports.h = h;
+    exports.isVNode = isVNode;
+    exports.normalizeChildren = normalizeChildren;
     exports.queueFlush = queueFlush;
     exports.queueJob = queueJob;
     exports.queuePostFlushCb = queuePostFlushCb;

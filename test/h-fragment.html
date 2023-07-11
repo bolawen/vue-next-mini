@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>h-fragment</title>
+    <script src="../packages/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module">
+      const { h, render, Fragment } = Vue;
+
+      const vnode = h(Fragment, '这是一个 Fragment');
+      console.log('vnode', vnode);
+
+      render(vnode, document.querySelector('#app'));
+    </script>
+  </body>
+</html>

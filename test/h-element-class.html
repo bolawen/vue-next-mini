@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vue3-Next-Mini h-element-class</title>
+    <script src="../packages/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <script type="module">
+      const { h } = Vue;
+
+      const vnode1 = h(
+        'div',
+        {
+          class: {
+            class1: true,
+            class2: false
+          }
+        },
+        '增强的 class'
+      );
+
+      console.log(vnode1);
+
+      const vnode2 = h(
+        'div',
+        {
+          class: [
+            'class1',
+            {
+              class2: true
+            },
+            'class3'
+          ]
+        },
+        '增强的 class'
+      );
+
+      console.log(vnode2);
+
+      const vnode3 = h(
+        'div',
+        {
+          class: 'class' + 1
+        },
+        '增强的 class'
+      );
+
+      console.log(vnode3);
+    </script>
+  </body>
+</html>
