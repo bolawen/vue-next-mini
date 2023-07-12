@@ -8,7 +8,7 @@ export default [
     output: [
       {
         name: 'Vue',
-        format: 'umd',
+        format: 'es',
         sourcemap: true,
         file: './packages/vue/dist/vue.js'
       }
