@@ -324,8 +324,8 @@ function normalizeClass(value) {
     return res.trim();
 }
 
-var Text = Symbol.for('v-text');
-var Comment = Symbol.for('v-cmt');
+var Text$1 = Symbol.for('v-text');
+var Comment$1 = Symbol.for('v-cmt');
 var Fragment = Symbol.for('v-fgt');
 function isVNode(value) {
     return value ? value.__v_isVNode === true : false;
@@ -397,7 +397,53 @@ function h(type, propsOrChildren, children) {
     }
 }
 
-function render() { }
+function createRenderer(options) {
+    return baseCreateRenderer(options);
+}
+function baseCreateRenderer(options) {
+    options.insert; options.patchProp; var hostCreateElement = options.createElement; options.setElementText;
+    var patch = function (n1, n2, container, anchor) {
+        if (n1 === n2) {
+            return;
+        }
+        var type = n2.type, shapeFlag = n2.shapeFlag;
+        switch (type) {
+            case Text:
+                break;
+            case Comment:
+                break;
+            case Fragment:
+                break;
+            default:
+                if (shapeFlag & 1 /* ShapeFlags.ELEMENT */) {
+                    processElement(n1, n2);
+                }
+        }
+    };
+    var processElement = function (n1, n2, container, anchor) {
+        if (n1 == null) {
+            mountElement(n2);
+        }
+    };
+    var mountElement = function (vnode, container, anchor) {
+        var type = vnode.type; vnode.props; vnode.shapeFlag;
+        // 1. 创建 Element
+        vnode.el = hostCreateElement(type);
+        // 2. 设置 Text
+        // 3. 设置 Props
+        // 4. 插入
+    };
+    var render = function (vnode, container) {
+        if (vnode == null) ;
+        else {
+            patch(container.vnode || null, vnode);
+        }
+        container._vnode = vnode;
+    };
+    return {
+        render: render
+    };
+}
 
 var flushIndex = 0;
 var postFlushIndex = 0;
@@ -534,5 +580,5 @@ function traverse(value, seen) {
     return value;
 }
 
-export { Comment, Fragment, Text, computed, createVNode, effect, flushJobs, flushPostFlushCbs, h, isVNode, normalizeChildren, queueFlush, queueJob, queuePostFlushCb, reactive, ref, render, traverse, watch };
+export { Comment$1 as Comment, Fragment, Text$1 as Text, baseCreateRenderer, computed, createRenderer, createVNode, effect, flushJobs, flushPostFlushCbs, h, isVNode, normalizeChildren, queueFlush, queueJob, queuePostFlushCb, reactive, ref, traverse, watch };
 //# sourceMappingURL=vue.js.map

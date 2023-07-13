@@ -1,16 +1,20 @@
 import { isArray, isFunction, isObject, isString } from '@vue/shared';
 import { normalizeClass } from 'packages/shared/src/normalizeProp';
 import { ShapeFlags } from 'packages/shared/src/shapeFlags';
+import { RendererElement, RendererNode } from './renderer';
 
 export const Text = Symbol.for('v-text');
 export const Comment = Symbol.for('v-cmt');
 export const Fragment = Symbol.for('v-fgt');
 
-export interface VNode {
+export interface VNode<HostNode = RendererNode, HostElement = RendererElement> {
   __v_isVNode: boolean;
   type: any;
+  props: any;
   children: any;
   shapeFlag: number;
+  el: any;
+  target: any;
 }
 
 export function isVNode(value: any): value is VNode {

@@ -18,3 +18,7 @@ export const extend = Object.assign;
 
 export const isString = (value: any): value is string =>
   typeof value === 'string';
+
+const onReg = /^on[^a-z]/;
+
+export const isOn = (key: string) => onReg.test(key);
