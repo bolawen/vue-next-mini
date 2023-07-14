@@ -54,6 +54,7 @@ function __spreadArray(to, from, pack) {
     return to.concat(ar || Array.prototype.slice.call(from));
 }
 
+var EMPTY_OBJ = {};
 function isArray(data) {
     return Array.isArray(data);
 }
@@ -301,6 +302,35 @@ function computed(getterOrOptions) {
     return cRef;
 }
 
+var doc = (typeof document !== 'undefined' ? document : null);
+var nodeOps = {
+    insert: function (child, parent, achor) {
+        parent.insertBefore(child, achor || null);
+    },
+    createElement: function (type) {
+        var el = doc.createElement(type);
+        return el;
+    },
+    setElementText: function (el, text) {
+        el.textContent = text;
+    }
+};
+
+function patchClass(el, value) {
+    if (value === null) {
+        el.removeAttribute('class');
+    }
+    else {
+        el.className = value;
+    }
+}
+
+var patchProp = function (el, key, prevValue, nextValue) {
+    if (key === 'class') {
+        patchClass(el, nextValue);
+    }
+};
+
 function normalizeClass(value) {
     var res = '';
     if (isString(value)) {
@@ -373,6 +403,129 @@ function normalizeChildren(vnode, children) {
     vnode.shapeFlag |= type;
 }
 
+function createRenderer(options) {
+    return baseCreateRenderer(options);
+}
+function baseCreateRenderer(options) {
+    var hostInsert = options.insert, hostPatchProp = options.patchProp, hostCreateElement = options.createElement, hostSetElementText = options.setElementText;
+    var patch = function (n1, n2, container, anchor) {
+        if (anchor === void 0) { anchor = null; }
+        if (n1 === n2) {
+            return;
+        }
+        var type = n2.type, shapeFlag = n2.shapeFlag;
+        switch (type) {
+            case Text:
+                break;
+            case Comment:
+                break;
+            case Fragment:
+                break;
+            default:
+                if (shapeFlag & 1 /* ShapeFlags.ELEMENT */) {
+                    processElement(n1, n2, container, anchor);
+                }
+        }
+    };
+    var processElement = function (n1, n2, container, anchor) {
+        if (n1 == null) {
+            mountElement(n2, container, anchor);
+        }
+        else {
+            patchElement(n1, n2);
+        }
+    };
+    var mountElement = function (vnode, container, anchor) {
+        var el;
+        var type = vnode.type, props = vnode.props, shapeFlag = vnode.shapeFlag;
+        // 1. 创建 Element
+        el = vnode.el = hostCreateElement(type);
+        if (shapeFlag & 8 /* ShapeFlags.TEXT_CHILDREN */) {
+            // 2. 设置 Text
+            hostSetElementText(el, vnode.children);
+        }
+        if (props) {
+            // 3. 设置 Props
+            for (var key in props) {
+                hostPatchProp(el, key, null, props[key]);
+            }
+        }
+        // 4. 插入
+        hostInsert(el, container, anchor);
+    };
+    var patchElement = function (n1, n2) {
+        var el = (n1.el = n2.el);
+        var oldProps = n1.props || EMPTY_OBJ;
+        var newProps = n2.props || EMPTY_OBJ;
+        patchChildren(n1, n2, el);
+        patchProps(el, n2, oldProps, newProps);
+    };
+    var patchChildren = function (n1, n2, container, anchor) {
+        var c1 = n1 && n1.children;
+        var prevShapFlag = n1 ? n1.shapeFlag : 0;
+        var c2 = n2 && n2.children;
+        var shapeFlag = n2.shapeFlag;
+        if (shapeFlag & 8 /* ShapeFlags.TEXT_CHILDREN */) {
+            if (c2 !== c1) {
+                // 挂载新子节点文本
+                hostSetElementText(container, c2);
+            }
+        }
+        else {
+            // 新节点不为文本节点
+            if (prevShapFlag & 16 /* ShapeFlags.ARRAY_CHILDREN */) ;
+            else {
+                if (prevShapFlag & 8 /* ShapeFlags.TEXT_CHILDREN */) {
+                    // 新节点不为文本节点 && 旧节点为文本节点 则下载旧子节点
+                    hostSetElementText(container, '');
+                }
+            }
+        }
+    };
+    var patchProps = function (el, vnode, oldProps, newProps) {
+        if (oldProps !== newProps) {
+            for (var key in newProps) {
+                var next = newProps[key];
+                var prev = oldProps[key];
+                if (next !== prev) {
+                    hostPatchProp(el, key, prev, next);
+                }
+            }
+            if (oldProps !== EMPTY_OBJ) {
+                for (var key in oldProps) {
+                    if (!(key in newProps)) {
+                        hostPatchProp(el, key, oldProps[key], null);
+                    }
+                }
+            }
+        }
+    };
+    var render = function (vnode, container) {
+        if (vnode == null) ;
+        else {
+            patch(container.vnode || null, vnode, container);
+        }
+        container._vnode = vnode;
+    };
+    return {
+        render: render
+    };
+}
+
+var renderer;
+var rendererOptions = extend({ patchProp: patchProp }, nodeOps);
+function ensureRenderer() {
+    return renderer || (renderer = createRenderer(rendererOptions));
+}
+var render = function () {
+    var _a;
+    var args = [];
+    for (var _i = 0; _i < arguments.length; _i++) {
+        args[_i] = arguments[_i];
+    }
+    (_a = ensureRenderer()).render.apply(_a, __spreadArray([], __read(args), false));
+};
+
 function h(type, propsOrChildren, children) {
     var l = arguments.length;
     if (l === 2) {
@@ -395,54 +548,6 @@ function h(type, propsOrChildren, children) {
         }
         return createVNode(type, propsOrChildren, children);
     }
-}
-
-function createRenderer(options) {
-    return baseCreateRenderer(options);
-}
-function baseCreateRenderer(options) {
-    options.insert; options.patchProp; var hostCreateElement = options.createElement; options.setElementText;
-    var patch = function (n1, n2, container, anchor) {
-        if (n1 === n2) {
-            return;
-        }
-        var type = n2.type, shapeFlag = n2.shapeFlag;
-        switch (type) {
-            case Text:
-                break;
-            case Comment:
-                break;
-            case Fragment:
-                break;
-            default:
-                if (shapeFlag & 1 /* ShapeFlags.ELEMENT */) {
-                    processElement(n1, n2);
-                }
-        }
-    };
-    var processElement = function (n1, n2, container, anchor) {
-        if (n1 == null) {
-            mountElement(n2);
-        }
-    };
-    var mountElement = function (vnode, container, anchor) {
-        var type = vnode.type; vnode.props; vnode.shapeFlag;
-        // 1. 创建 Element
-        vnode.el = hostCreateElement(type);
-        // 2. 设置 Text
-        // 3. 设置 Props
-        // 4. 插入
-    };
-    var render = function (vnode, container) {
-        if (vnode == null) ;
-        else {
-            patch(container.vnode || null, vnode);
-        }
-        container._vnode = vnode;
-    };
-    return {
-        render: render
-    };
 }
 
 var flushIndex = 0;
@@ -580,5 +685,5 @@ function traverse(value, seen) {
     return value;
 }
 
-export { Comment$1 as Comment, Fragment, Text$1 as Text, baseCreateRenderer, computed, createRenderer, createVNode, effect, flushJobs, flushPostFlushCbs, h, isVNode, normalizeChildren, queueFlush, queueJob, queuePostFlushCb, reactive, ref, traverse, watch };
+export { Comment$1 as Comment, Fragment, Text$1 as Text, baseCreateRenderer, computed, createRenderer, createVNode, effect, flushJobs, flushPostFlushCbs, h, isVNode, normalizeChildren, queueFlush, queueJob, queuePostFlushCb, reactive, ref, render, traverse, watch };
 //# sourceMappingURL=vue.js.map

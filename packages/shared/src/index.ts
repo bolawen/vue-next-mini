@@ -1,3 +1,6 @@
+export const EMPTY_OBJ = {};
+export const EMPTY_ARR = [];
+
 export function isArray(data: any) {
   return Array.isArray(data);
 }

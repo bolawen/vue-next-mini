@@ -13,8 +13,8 @@ export interface VNode<HostNode = RendererNode, HostElement = RendererElement> {
   props: any;
   children: any;
   shapeFlag: number;
-  el: any;
-  target: any;
+  el: HostNode | null;
+  target: HostElement | null;
 }
 
 export function isVNode(value: any): value is VNode {
