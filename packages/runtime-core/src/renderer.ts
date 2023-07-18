@@ -1,64 +1,30 @@
 import { ShapeFlags } from 'packages/shared/src/shapeFlags';
-import { Fragment, VNode } from './vnode';
+import { Fragment, isSameVNodeType } from './vnode';
 import { EMPTY_OBJ } from '@vue/shared';
 
-export interface RendererNode {
-  [key: string]: any;
-}
-
-export interface RendererElement extends RendererNode {}
-
-export type RootRenderFunction<HostElement = RendererElement> = (
-  vnode: VNode | null,
-  container: HostElement
-) => void;
-
-export interface Renderer<HostElement = RendererElement> {
-  render: RootRenderFunction<HostElement>;
-}
-
-export type PatchFunction = (
-  n1: VNode | null,
-  n2: VNode,
-  container: RendererElement,
-  anchor?: RendererNode | null
-) => void;
-
-export interface RendererOptions<
-  HostNode = RendererNode,
-  HostElement = RendererElement
-> {
-  patchProp(
-    el: HostElement,
-    key: string,
-    prevValue: string | null,
-    nextValue: string | null
-  ): void;
-  createElement(type: string): HostElement;
-  setElementText(node: HostNode, text: string): void;
-  insert(el: HostNode, parent: HostElement, anchor?: HostNode | null);
-}
-
-export function createRenderer<HostNode, HostElement>(
-  options: RendererOptions
-) {
+export function createRenderer(options) {
   return baseCreateRenderer(options);
 }
 
-export function baseCreateRenderer<HostNode, HostElement>(
-  options: RendererOptions
-) {
+export function baseCreateRenderer(options) {
   const {
     insert: hostInsert,
+    remove: hostRemove,
     patchProp: hostPatchProp,
     createElement: hostCreateElement,
     setElementText: hostSetElementText
   } = options;
 
-  const patch: PatchFunction = (n1, n2, container, anchor = null) => {
+  const patch = (n1, n2, container, anchor = null) => {
     if (n1 === n2) {
       return;
     }
+
+    if (n1 && !isSameVNodeType(n1, n2)) {
+      unmount(n1);
+      n1 = null;
+    }
+
     const { type, shapeFlag } = n2;
 
     switch (type) {
@@ -76,12 +42,7 @@ export function baseCreateRenderer<HostNode, HostElement>(
     }
   };
 
-  const processElement = (
-    n1: VNode | null,
-    n2: VNode,
-    container: RendererElement,
-    anchor: RendererNode | null
-  ) => {
+  const processElement = (n1, n2, container, anchor) => {
     if (n1 == null) {
       mountElement(n2, container, anchor);
     } else {
@@ -89,12 +50,8 @@ export function baseCreateRenderer<HostNode, HostElement>(
     }
   };
 
-  const mountElement = (
-    vnode: VNode,
-    container: RendererElement,
-    anchor: RendererNode | null
-  ) => {
-    let el: RendererElement;
+  const mountElement = (vnode, container, anchor) => {
+    let el;
     const { type, props, shapeFlag } = vnode;
     // 1. 创建 Element
     el = vnode.el = hostCreateElement(type);
@@ -113,15 +70,15 @@ export function baseCreateRenderer<HostNode, HostElement>(
     hostInsert(el, container, anchor);
   };
 
-  const patchElement = (n1: VNode, n2: VNode) => {
-    const el = (n1.el = n2.el!);
+  const patchElement = (n1, n2) => {
+    const el = (n2.el = n1.el!);
     const oldProps = n1.props || EMPTY_OBJ;
     const newProps = n2.props || EMPTY_OBJ;
     patchChildren(n1, n2, el, null);
     patchProps(el, n2, oldProps, newProps);
   };
 
-  const patchChildren = (n1: VNode, n2: VNode, container, anchor) => {
+  const patchChildren = (n1, n2, container, anchor) => {
     const c1 = n1 && n1.children;
     const prevShapFlag = n1 ? n1.shapeFlag : 0;
     const c2 = n2 && n2.children;
@@ -157,20 +114,8 @@ export function baseCreateRenderer<HostNode, HostElement>(
     }
   };
 
-  const patchProps = (
-    el: RendererElement,
-    vnode: VNode,
-    oldProps,
-    newProps
-  ) => {
+  const patchProps = (el, vnode, oldProps, newProps) => {
     if (oldProps !== newProps) {
-      for (const key in newProps) {
-        const next = newProps[key];
-        const prev = oldProps[key];
-        if (next !== prev) {
-          hostPatchProp(el, key, prev, next);
-        }
-      }
       if (oldProps !== EMPTY_OBJ) {
         for (const key in oldProps) {
           if (!(key in newProps)) {
@@ -178,14 +123,27 @@ export function baseCreateRenderer<HostNode, HostElement>(
           }
         }
       }
+      for (const key in newProps) {
+        const next = newProps[key];
+        const prev = oldProps[key];
+        if (next !== prev) {
+          hostPatchProp(el, key, prev, next);
+        }
+      }
     }
   };
 
-  const render: RootRenderFunction = (vnode, container) => {
+  const unmount = vnode => {
+    hostRemove(vnode.el as Node);
+  };
+
+  const render = (vnode, container) => {
     if (vnode == null) {
-      // 卸载
+      if (container._vnode) {
+        unmount(container._vnode);
+      }
     } else {
-      patch(container.vnode || null, vnode, container);
+      patch(container._vnode || null, vnode, container);
     }
     container._vnode = vnode;
   };

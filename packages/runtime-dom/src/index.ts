@@ -1,19 +1,15 @@
 import { nodeOps } from './nodeOps';
 import { extend } from '@vue/shared';
 import { patchProp } from './patchProp';
-import {
-  Renderer,
-  RootRenderFunction,
-  createRenderer
-} from 'packages/runtime-core/src/renderer';
+import { createRenderer } from 'packages/runtime-core/src/renderer';
 
-let renderer: Renderer<Element | ShadowRoot>;
+let renderer;
 const rendererOptions = extend({ patchProp }, nodeOps);
 
 function ensureRenderer() {
   return renderer || (renderer = createRenderer(rendererOptions));
 }
 
-export const render: RootRenderFunction<Element | ShadowRoot> = (...args) => {
+export const render = (...args) => {
   ensureRenderer().render(...args);
 };

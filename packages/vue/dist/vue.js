@@ -71,6 +71,8 @@ var extend = Object.assign;
 var isString = function (value) {
     return typeof value === 'string';
 };
+var onReg = /^on[^a-z]/;
+var isOn = function (key) { return onReg.test(key); };
 
 var createDep = function (effects) {
     var dep = new Set(effects);
@@ -313,6 +315,12 @@ var nodeOps = {
     },
     setElementText: function (el, text) {
         el.textContent = text;
+    },
+    remove: function (child) {
+        var parent = child.parentNode;
+        if (parent) {
+            parent.removeChild(child);
+        }
     }
 };
 
@@ -326,9 +334,14 @@ function patchClass(el, value) {
 }
 
 var patchProp = function (el, key, prevValue, nextValue) {
+    console.log(key);
     if (key === 'class') {
         patchClass(el, nextValue);
     }
+    else if (key === 'style') ;
+    else if (isOn(key)) ;
+    else if (key[0] === '.') ;
+    else ;
 };
 
 function normalizeClass(value) {
@@ -359,6 +372,9 @@ var Comment$1 = Symbol.for('v-cmt');
 var Fragment = Symbol.for('v-fgt');
 function isVNode(value) {
     return value ? value.__v_isVNode === true : false;
+}
+function isSameVNodeType(n1, n2) {
+    return n1.key === n2.key && n1.type === n2.type;
 }
 function createVNode(type, props, children) {
     if (props) {
@@ -407,11 +423,15 @@ function createRenderer(options) {
     return baseCreateRenderer(options);
 }
 function baseCreateRenderer(options) {
-    var hostInsert = options.insert, hostPatchProp = options.patchProp, hostCreateElement = options.createElement, hostSetElementText = options.setElementText;
+    var hostInsert = options.insert, hostRemove = options.remove, hostPatchProp = options.patchProp, hostCreateElement = options.createElement, hostSetElementText = options.setElementText;
     var patch = function (n1, n2, container, anchor) {
         if (anchor === void 0) { anchor = null; }
         if (n1 === n2) {
             return;
+        }
+        if (n1 && !isSameVNodeType(n1, n2)) {
+            unmount(n1);
+            n1 = null;
         }
         var type = n2.type, shapeFlag = n2.shapeFlag;
         switch (type) {
@@ -454,7 +474,7 @@ function baseCreateRenderer(options) {
         hostInsert(el, container, anchor);
     };
     var patchElement = function (n1, n2) {
-        var el = (n1.el = n2.el);
+        var el = (n2.el = n1.el);
         var oldProps = n1.props || EMPTY_OBJ;
         var newProps = n2.props || EMPTY_OBJ;
         patchChildren(n1, n2, el);
@@ -484,13 +504,6 @@ function baseCreateRenderer(options) {
     };
     var patchProps = function (el, vnode, oldProps, newProps) {
         if (oldProps !== newProps) {
-            for (var key in newProps) {
-                var next = newProps[key];
-                var prev = oldProps[key];
-                if (next !== prev) {
-                    hostPatchProp(el, key, prev, next);
-                }
-            }
             if (oldProps !== EMPTY_OBJ) {
                 for (var key in oldProps) {
                     if (!(key in newProps)) {
@@ -498,12 +511,26 @@ function baseCreateRenderer(options) {
                     }
                 }
             }
+            for (var key in newProps) {
+                var next = newProps[key];
+                var prev = oldProps[key];
+                if (next !== prev) {
+                    hostPatchProp(el, key, prev, next);
+                }
+            }
         }
     };
+    var unmount = function (vnode) {
+        hostRemove(vnode.el);
+    };
     var render = function (vnode, container) {
-        if (vnode == null) ;
+        if (vnode == null) {
+            if (container._vnode) {
+                unmount(container._vnode);
+            }
+        }
         else {
-            patch(container.vnode || null, vnode, container);
+            patch(container._vnode || null, vnode, container);
         }
         container._vnode = vnode;
     };
@@ -685,5 +712,5 @@ function traverse(value, seen) {
     return value;
 }
 
-export { Comment$1 as Comment, Fragment, Text$1 as Text, baseCreateRenderer, computed, createRenderer, createVNode, effect, flushJobs, flushPostFlushCbs, h, isVNode, normalizeChildren, queueFlush, queueJob, queuePostFlushCb, reactive, ref, render, traverse, watch };
+export { Comment$1 as Comment, Fragment, Text$1 as Text, baseCreateRenderer, computed, createRenderer, createVNode, effect, flushJobs, flushPostFlushCbs, h, isSameVNodeType, isVNode, normalizeChildren, queueFlush, queueJob, queuePostFlushCb, reactive, ref, render, traverse, watch };
 //# sourceMappingURL=vue.js.map

@@ -17,14 +17,12 @@
     <script type="module">
       import { h, render } from 'vue';
 
-      const div1 = h('div', { class: 'test1' }, 'hello render-mount');
-
+      const div1 = h(
+        'textarea',
+        { class: 'test-input', value: '嘻嘻', type: 'text' },
+        'hello render-mount'
+      );
       render(div1, document.querySelector('#app'));
-
-      setTimeout(() => {
-        const div2 = h('div', { class: 'test2' }, 'hello render-update');
-        render(div2, document.querySelector('#app'));
-      }, 2000);
     </script>
   </body>
 </html>
