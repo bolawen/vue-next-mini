@@ -333,16 +333,70 @@ function patchClass(el, value) {
     }
 }
 
+function patchDOMProp(el, key, value) {
+    el[key] = value == null ? '' : value;
+    return;
+}
+
+function patchAttr(el, key, value) {
+    if (value == null) {
+        el.removeAttribute(key);
+    }
+    else {
+        el.setAttribute(key, value);
+    }
+}
+
+function patchStyle(el, prev, next) {
+    var style = el.style;
+    var isCssString = isString(next);
+    if (next && !isCssString) {
+        for (var key in next) {
+            setStyle(style, key, next[key]);
+        }
+        if (prev && !isString(prev)) {
+            for (var key in prev) {
+                if (next[key] == null) {
+                    setStyle(style, key, '');
+                }
+            }
+        }
+    }
+}
+function setStyle(style, name, value) {
+    style[name] = value;
+}
+
 var patchProp = function (el, key, prevValue, nextValue) {
-    console.log(key);
     if (key === 'class') {
         patchClass(el, nextValue);
     }
-    else if (key === 'style') ;
+    else if (key === 'style') {
+        patchStyle(el, prevValue, nextValue);
+    }
     else if (isOn(key)) ;
-    else if (key[0] === '.') ;
-    else ;
+    else if (shouldSetAsProp(el, key)) {
+        patchDOMProp(el, key, nextValue);
+    }
+    else {
+        patchAttr(el, key, nextValue);
+    }
 };
+function shouldSetAsProp(el, key) {
+    if (key === 'innerHTML' || key === 'textContent') {
+        return true;
+    }
+    if (key === 'form') {
+        return false;
+    }
+    if (key === 'list' && el.tagName === 'INPUT') {
+        return false;
+    }
+    if (key === 'type' && el.tagName === 'TEXTAREA') {
+        return false;
+    }
+    return key in el;
+}
 
 function normalizeClass(value) {
     var res = '';

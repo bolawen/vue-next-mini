@@ -19,10 +19,35 @@
 
       const div1 = h(
         'textarea',
-        { class: 'test-input', value: '嘻嘻', type: 'text' },
+        {
+          class: 'test-input',
+          value: '嘻嘻',
+          type: 'text',
+          style: { width: '400px', color: 'red' },
+          onChange() {
+            console.log('改变');
+          }
+        },
         'hello render-mount'
       );
       render(div1, document.querySelector('#app'));
+
+      setTimeout(() => {
+        const div1 = h(
+          'textarea',
+          {
+            class: 'test-input',
+            value: '哈哈',
+            type: 'text',
+            style: { width: '800px' },
+            onBlur() {
+              console.log('改变');
+            }
+          },
+          'hello render-update'
+        );
+        render(div1, document.querySelector('#app'));
+      }, 3000);
     </script>
   </body>
 </html>
