@@ -321,6 +321,15 @@ var nodeOps = {
         if (parent) {
             parent.removeChild(child);
         }
+    },
+    createText: function (text) {
+        return doc.createTextNode(text);
+    },
+    setText: function (node, text) {
+        node.nodeValue = text;
+    },
+    createComment: function (text) {
+        return doc.createComment(text);
     }
 };
 
@@ -367,6 +376,35 @@ function setStyle(style, name, value) {
     style[name] = value;
 }
 
+function patchEvent(el, rawName, prevValue, nextValue) {
+    var invokers = el._vei || (el._vei = {});
+    var existingInvoker = invokers[rawName];
+    if (nextValue && existingInvoker) {
+        existingInvoker.value = nextValue;
+    }
+    else {
+        var name_1 = parseName(rawName);
+        if (nextValue) {
+            var invoker = (invokers[rawName] = createInvoker(nextValue));
+            el.addEventListener(name_1, invoker);
+        }
+        else if (existingInvoker) {
+            el.removeEventListener(name_1, existingInvoker);
+            invokers[rawName] = undefined;
+        }
+    }
+}
+function parseName(name) {
+    return name.slice(2).toLowerCase();
+}
+function createInvoker(initialValue) {
+    var invoker = function (e) {
+        invoker.value && invoker.value();
+    };
+    invoker.value = initialValue;
+    return invoker;
+}
+
 var patchProp = function (el, key, prevValue, nextValue) {
     if (key === 'class') {
         patchClass(el, nextValue);
@@ -374,7 +412,9 @@ var patchProp = function (el, key, prevValue, nextValue) {
     else if (key === 'style') {
         patchStyle(el, prevValue, nextValue);
     }
-    else if (isOn(key)) ;
+    else if (isOn(key)) {
+        patchEvent(el, key, prevValue, nextValue);
+    }
     else if (shouldSetAsProp(el, key)) {
         patchDOMProp(el, key, nextValue);
     }
@@ -421,8 +461,8 @@ function normalizeClass(value) {
     return res.trim();
 }
 
-var Text$1 = Symbol.for('v-text');
-var Comment$1 = Symbol.for('v-cmt');
+var Text = Symbol.for('v-text');
+var Comment = Symbol.for('v-cmt');
 var Fragment = Symbol.for('v-fgt');
 function isVNode(value) {
     return value ? value.__v_isVNode === true : false;
@@ -450,10 +490,28 @@ function createBaseVNode(type, props, children, shapeFlag) {
         type: type,
         props: props,
         children: children,
-        shapeFlag: shapeFlag
+        shapeFlag: shapeFlag,
+        key: props.key || null
     };
     normalizeChildren(vnode, children);
     return vnode;
+}
+function normalizeVNode(child) {
+    if (child == null || typeof child === 'boolean') {
+        return createVNode(Comment);
+    }
+    else if (isArray(child)) {
+        return createVNode(Fragment, null, child.slice());
+    }
+    else if (typeof child === 'object') {
+        return cloneIfMounted(child);
+    }
+    else {
+        return createVNode(Text, null, String(child));
+    }
+}
+function cloneIfMounted(child) {
+    return child;
 }
 function normalizeChildren(vnode, children) {
     var type = 0;
@@ -473,11 +531,186 @@ function normalizeChildren(vnode, children) {
     vnode.shapeFlag |= type;
 }
 
+function injectHook(type, hook, target) {
+    if (target) {
+        target[type] = hook;
+        return hook;
+    }
+}
+var createHook = function (lifecycle) {
+    return function (hook, target) { return injectHook(lifecycle, hook, target); };
+};
+var onBeforeMount = createHook("bm" /* LifecycleHooks.BEFORE_MOUNT */);
+var onMounted = createHook("m" /* LifecycleHooks.MOUNTED */);
+
+function callHook(hook, proxy) {
+    hook.bind(proxy)();
+}
+function applyOptions(instance) {
+    var _a = instance.type, dataOptions = _a.data, beforeCreate = _a.beforeCreate, created = _a.created, beforeMount = _a.beforeMount, mounted = _a.mounted;
+    if (beforeCreate) {
+        callHook(beforeCreate, instance.data);
+    }
+    if (dataOptions) {
+        var data = dataOptions();
+        if (isObject(data)) {
+            instance.data = reactive(data);
+        }
+    }
+    if (created) {
+        callHook(created, instance.data);
+    }
+    function registerLifecycleHook(register, hook) {
+        if (isArray(hook)) {
+            hook.forEach(function (_hook) { return register(_hook.bind(instance.data), instance); });
+        }
+        else if (hook) {
+            register(hook.bind(instance.data), instance);
+        }
+    }
+    registerLifecycleHook(onBeforeMount, beforeMount);
+    registerLifecycleHook(onMounted, mounted);
+}
+
+var uid = 0;
+function createComponentInstance(vnode) {
+    var type = vnode.type;
+    var instance = {
+        uid: uid++,
+        type: type,
+        vnode: vnode,
+        effect: null,
+        render: null,
+        update: null,
+        subTree: null,
+        // lifecycle hooks
+        isMounted: false,
+        isUnmounted: false,
+        isDeactivated: false,
+        bc: null,
+        c: null,
+        bm: null,
+        m: null,
+        bu: null,
+        u: null,
+        um: null,
+        bum: null,
+        da: null,
+        a: null,
+        rtg: null,
+        rtc: null,
+        ec: null,
+        sp: null
+    };
+    return instance;
+}
+function setupComponent(instance) {
+    var isStateful = isStatefulComponent(instance);
+    var setupResult = isStateful ? setupStatefulComponent(instance) : undefined;
+    return setupResult;
+}
+function isStatefulComponent(instance) {
+    return instance.vnode.shapeFlag & 4 /* ShapeFlags.STATEFUL_COMPONENT */;
+}
+function setupStatefulComponent(instance) {
+    var Component = instance.type;
+    var setup = Component.setup;
+    if (setup) {
+        var setupResult = setup();
+        handleSetupResult(instance, setupResult);
+    }
+    else {
+        finishComponentSetup(instance);
+    }
+}
+function handleSetupResult(instance, setupResult) {
+    if (isFunction(setupResult)) {
+        instance.render = setupResult;
+    }
+    finishComponentSetup(instance);
+}
+function finishComponentSetup(instance) {
+    var Component = instance.type;
+    if (!instance.render) {
+        instance.render = Component.render;
+    }
+    applyOptions(instance);
+}
+
+var flushIndex = 0;
+var postFlushIndex = 0;
+var isFlushPending = false;
+var queue = [];
+var pendingPostFlushCbs = [];
+var activePostFlushCbs = null;
+var resolvePromise = Promise.resolve();
+function flushPostFlushCbs() {
+    if (pendingPostFlushCbs.length) {
+        var deduped = __spreadArray([], __read(new Set(pendingPostFlushCbs)), false);
+        pendingPostFlushCbs.length = 0;
+        if (activePostFlushCbs) {
+            activePostFlushCbs.push.apply(activePostFlushCbs, __spreadArray([], __read(deduped), false));
+            return;
+        }
+        activePostFlushCbs = __spreadArray([], __read(deduped), false);
+        for (postFlushIndex = 0; postFlushIndex < activePostFlushCbs.length; postFlushIndex++) {
+            activePostFlushCbs[postFlushIndex]();
+        }
+        activePostFlushCbs = null;
+        postFlushIndex = 0;
+    }
+}
+function flushJobs() {
+    isFlushPending = false;
+    try {
+        for (flushIndex = 0; flushIndex < queue.length; flushIndex++) {
+            var job = queue[flushIndex];
+            job();
+        }
+    }
+    finally {
+        flushIndex = 0;
+        queue.length = 0;
+        flushPostFlushCbs();
+    }
+}
+function queueFlush() {
+    if (!isFlushPending) {
+        isFlushPending = true;
+        resolvePromise.then(flushJobs);
+    }
+}
+function queuePostFlushCb(cb) {
+    if (Array.isArray(cb)) ;
+    else {
+        pendingPostFlushCbs.push(cb);
+    }
+    queueFlush();
+}
+function queueJob(job) {
+    queue.push(job);
+    queueFlush();
+}
+
+function renderComponentRoot(instance) {
+    instance.type; var vnode = instance.vnode, render = instance.render, data = instance.data;
+    var result;
+    try {
+        if (vnode.shapeFlag & 4 /* ShapeFlags.STATEFUL_COMPONENT */) {
+            result = normalizeVNode(render.call(data));
+        }
+    }
+    catch (error) {
+        console.log(error);
+    }
+    return result;
+}
+
 function createRenderer(options) {
     return baseCreateRenderer(options);
 }
 function baseCreateRenderer(options) {
-    var hostInsert = options.insert, hostRemove = options.remove, hostPatchProp = options.patchProp, hostCreateElement = options.createElement, hostSetElementText = options.setElementText;
+    var hostInsert = options.insert, hostRemove = options.remove, hostSetText = options.setText, hostPatchProp = options.patchProp, hostCreateText = options.createText, hostCreateComment = options.createComment, hostCreateElement = options.createElement, hostSetElementText = options.setElementText;
     var patch = function (n1, n2, container, anchor) {
         if (anchor === void 0) { anchor = null; }
         if (n1 === n2) {
@@ -490,15 +723,50 @@ function baseCreateRenderer(options) {
         var type = n2.type, shapeFlag = n2.shapeFlag;
         switch (type) {
             case Text:
+                processText(n1, n2, container, anchor);
                 break;
             case Comment:
+                processCommentNode(n1, n2, container, anchor);
                 break;
             case Fragment:
+                processFragment(n1, n2, container, anchor);
                 break;
             default:
                 if (shapeFlag & 1 /* ShapeFlags.ELEMENT */) {
                     processElement(n1, n2, container, anchor);
                 }
+                else if (shapeFlag & 6 /* ShapeFlags.COMPONENT */) {
+                    processComponent(n1, n2, container, anchor);
+                }
+        }
+    };
+    var processText = function (n1, n2, container, anchor) {
+        if (n1 == null) {
+            n2.el = hostCreateText(n2.children);
+            hostInsert(n2.el, container, anchor);
+        }
+        else {
+            var el = (n2.el = n1.el);
+            if (n2.children !== n1.children) {
+                hostSetText(el, n2.children);
+            }
+        }
+    };
+    var processCommentNode = function (n1, n2, container, anchor) {
+        if (n1 == null) {
+            n2.el = hostCreateComment(n2.children);
+            hostInsert(n2.el, container, anchor);
+        }
+        else {
+            n2.el = n1.el;
+        }
+    };
+    var processFragment = function (n1, n2, container, anchor) {
+        if (n1 == null) {
+            mountChildren(n2.children, container, anchor);
+        }
+        else {
+            patchChildren(n1, n2, container);
         }
     };
     var processElement = function (n1, n2, container, anchor) {
@@ -508,6 +776,54 @@ function baseCreateRenderer(options) {
         else {
             patchElement(n1, n2);
         }
+    };
+    var processComponent = function (n1, n2, container, anchor) {
+        if (n1 == null) {
+            if (n2.shapeFlag & 512 /* ShapeFlags.COMPONENT_KEPT_ALIVE */) ;
+            else {
+                mountComponent(n2, container, anchor);
+            }
+        }
+    };
+    var mountComponent = function (initialVNode, container, anchor) {
+        var componentMountInstance = initialVNode.component;
+        var instance = componentMountInstance ||
+            (initialVNode.component = createComponentInstance(initialVNode));
+        setupComponent(instance);
+        setupRenderEffect(instance, initialVNode, container, anchor);
+    };
+    var setupRenderEffect = function (instance, initialValue, container, anchor) {
+        var componentUpdateFn = function () {
+            if (!instance.isMounted) {
+                var bm = instance.bm, m = instance.m;
+                if (bm) {
+                    bm();
+                }
+                var subTree = (instance.subTree = renderComponentRoot(instance));
+                patch(null, subTree, container, anchor);
+                initialValue.el = subTree.el;
+                if (m) {
+                    m();
+                }
+                instance.isMounted = true;
+            }
+            else {
+                var next = instance.next, vnode = instance.vnode;
+                if (!next) {
+                    next = vnode;
+                }
+                var nextTree = renderComponentRoot(instance);
+                var prevTree = instance.subTree;
+                instance.subTree = nextTree;
+                patch(prevTree, nextTree, container, anchor);
+                next.el = nextTree.el;
+            }
+        };
+        var effect = (instance.effect = new ReactiveEffect(componentUpdateFn, function () {
+            queueJob(update);
+        }));
+        var update = (instance.update = function () { return effect.run(); });
+        update();
     };
     var mountElement = function (vnode, container, anchor) {
         var el;
@@ -533,6 +849,15 @@ function baseCreateRenderer(options) {
         var newProps = n2.props || EMPTY_OBJ;
         patchChildren(n1, n2, el);
         patchProps(el, n2, oldProps, newProps);
+    };
+    var mountChildren = function (children, container, anchor) {
+        if (isString(children)) {
+            children = children.split('');
+        }
+        for (var i = 0; i < children.length; i++) {
+            var child = (children[i] = normalizeVNode(children[i]));
+            patch(null, child, container, anchor);
+        }
     };
     var patchChildren = function (n1, n2, container, anchor) {
         var c1 = n1 && n1.children;
@@ -610,14 +935,14 @@ var render = function () {
 function h(type, propsOrChildren, children) {
     var l = arguments.length;
     if (l === 2) {
-        if (isObject(propsOrChildren) && !Array.isArray(propsOrChildren)) {
+        if (isObject(propsOrChildren) && !isArray(propsOrChildren)) {
             if (isVNode(propsOrChildren)) {
                 return createVNode(type, null, [propsOrChildren]);
             }
             return createVNode(type, propsOrChildren);
         }
         else {
-            return createVNode(type, propsOrChildren);
+            return createVNode(type, null, propsOrChildren);
         }
     }
     else {
@@ -629,61 +954,6 @@ function h(type, propsOrChildren, children) {
         }
         return createVNode(type, propsOrChildren, children);
     }
-}
-
-var flushIndex = 0;
-var postFlushIndex = 0;
-var isFlushPending = false;
-var queue = [];
-var pendingPostFlushCbs = [];
-var activePostFlushCbs = null;
-var resolvePromise = Promise.resolve();
-function flushPostFlushCbs() {
-    if (pendingPostFlushCbs.length) {
-        var deduped = __spreadArray([], __read(new Set(pendingPostFlushCbs)), false);
-        pendingPostFlushCbs.length = 0;
-        if (activePostFlushCbs) {
-            activePostFlushCbs.push.apply(activePostFlushCbs, __spreadArray([], __read(deduped), false));
-            return;
-        }
-        activePostFlushCbs = __spreadArray([], __read(deduped), false);
-        for (postFlushIndex = 0; postFlushIndex < activePostFlushCbs.length; postFlushIndex++) {
-            activePostFlushCbs[postFlushIndex]();
-        }
-        activePostFlushCbs = null;
-        postFlushIndex = 0;
-    }
-}
-function flushJobs() {
-    isFlushPending = false;
-    try {
-        for (flushIndex = 0; flushIndex < queue.length; flushIndex++) {
-            var job = queue[flushIndex];
-            job();
-        }
-    }
-    finally {
-        flushIndex = 0;
-        queue.length = 0;
-        flushPostFlushCbs();
-    }
-}
-function queueFlush() {
-    if (!isFlushPending) {
-        isFlushPending = true;
-        resolvePromise.then(flushJobs);
-    }
-}
-function queuePostFlushCb(cb) {
-    if (Array.isArray(cb)) ;
-    else {
-        pendingPostFlushCbs.push(cb);
-    }
-    queueFlush();
-}
-function queueJob(job) {
-    queue.push(job);
-    queueFlush();
 }
 
 function watch(source, cb, options) {
@@ -766,5 +1036,5 @@ function traverse(value, seen) {
     return value;
 }
 
-export { Comment$1 as Comment, Fragment, Text$1 as Text, baseCreateRenderer, computed, createRenderer, createVNode, effect, flushJobs, flushPostFlushCbs, h, isSameVNodeType, isVNode, normalizeChildren, queueFlush, queueJob, queuePostFlushCb, reactive, ref, render, traverse, watch };
+export { Comment, Fragment, Text, baseCreateRenderer, cloneIfMounted, computed, createRenderer, createVNode, effect, flushJobs, flushPostFlushCbs, h, isSameVNodeType, isVNode, normalizeChildren, normalizeVNode, queueFlush, queueJob, queuePostFlushCb, reactive, ref, render, traverse, watch };
 //# sourceMappingURL=vue.js.map

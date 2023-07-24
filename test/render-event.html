@@ -23,7 +23,10 @@
           class: 'test-input',
           value: '嘻嘻',
           type: 'text',
-          style: { width: '400px', color: 'red' }
+          style: { width: '400px', color: 'red' },
+          onChange() {
+            console.log('改变');
+          }
         },
         'hello render-mount'
       );
@@ -36,7 +39,10 @@
             class: 'test-input',
             value: '哈哈',
             type: 'text',
-            style: { width: '800px' }
+            style: { width: '800px' },
+            onBlur() {
+              console.log('失焦');
+            }
           },
           'hello render-update'
         );

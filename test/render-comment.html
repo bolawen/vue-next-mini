@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vue3 h</title>
+    <title>Vue3-Next-Mini Render</title>
     <script type="importmap">
       {
         "imports": {
@@ -13,19 +13,12 @@
     </script>
   </head>
   <body>
+    <div id="app"></div>
     <script type="module">
-      import { h, render } from 'vue';
+      import { h, render, Comment } from 'vue';
 
-      const vnode = h(
-        'div',
-        {
-          class: 'test',
-          key: 1
-        },
-        'hello render'
-      );
-
-      console.log(vnode);
+      const div1 = h(Comment, 'hello render-mount');
+      render(div1, document.querySelector('#app'));
     </script>
   </body>
 </html>

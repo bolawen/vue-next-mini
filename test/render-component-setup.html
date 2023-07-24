@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vue3-Next-Mini Render Component setup</title>
+    <script type="importmap">
+      {
+        "imports": {
+          "vue": "../packages/vue/dist/vue.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module">
+      import { h, render, reactive } from 'vue';
+
+      const component1 = {
+        setup() {
+          const obj = reactive({
+            msg: 'hello component mount'
+          });
+
+          setTimeout(() => {
+            obj.msg = 'hello component update';
+          }, 3000);
+
+          return () => h('div', obj.msg);
+        }
+      };
+
+      const vnode1 = h(component1);
+      render(vnode1, document.querySelector('#app'));
+    </script>
+  </body>
+</html>

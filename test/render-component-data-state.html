@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vue3-Next-Mini Render Component Data State</title>
+    <script type="importmap">
+      {
+        "imports": {
+          "vue": "../packages/vue/dist/vue.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module">
+      import { h, render } from 'vue';
+
+      const component1 = {
+        data() {
+          return {
+            msg: 'hello component mount'
+          };
+        },
+        render() {
+          return h('div', this.msg);
+        },
+        beforeCreate() {
+          console.log('beforeCreate', this);
+        },
+        created() {
+          console.log('created', this);
+        },
+        beforeMount() {
+          console.log('beforeMount', this);
+        },
+        mounted() {
+          setTimeout(() => {
+            this.msg = 'hello component update';
+          }, 3000);
+          console.log('mounted', this);
+        }
+      };
+
+      const vnode1 = h(component1);
+      render(vnode1, document.querySelector('#app'));
+    </script>
+  </body>
+</html>

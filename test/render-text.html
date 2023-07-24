@@ -15,31 +15,13 @@
   <body>
     <div id="app"></div>
     <script type="module">
-      import { h, render } from 'vue';
+      import { h, render, Text } from 'vue';
 
-      const div1 = h(
-        'div',
-        {
-          class: 'test-input',
-          value: '嘻嘻',
-          type: 'text',
-          style: { width: '400px', color: 'red' }
-        },
-        'hello render-mount'
-      );
+      const div1 = h(Text, 'hello render-mount');
       render(div1, document.querySelector('#app'));
 
       setTimeout(() => {
-        const div1 = h(
-          'div',
-          {
-            class: 'test-input',
-            value: '哈哈',
-            type: 'text',
-            style: { width: '800px' }
-          },
-          'hello render-update'
-        );
+        const div1 = h('Text', 'hello render-update');
         render(div1, document.querySelector('#app'));
       }, 3000);
     </script>

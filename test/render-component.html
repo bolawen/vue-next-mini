@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vue3-Next-Mini Render Component</title>
+    <script type="importmap">
+      {
+        "imports": {
+          "vue": "../packages/vue/dist/vue.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module">
+      import { h, render } from 'vue';
+
+      const component1 = {
+        render() {
+          return h('div', 'hello component mount');
+        }
+      };
+
+      const vnode1 = h(component1);
+      render(vnode1, document.querySelector('#app'));
+
+      setTimeout(() => {
+        const component2 = {
+          render() {
+            return h('div', 'hello component update');
+          }
+        };
+
+        const vnode2 = h(component2);
+        render(vnode2, document.querySelector('#app'));
+      }, 3000);
+    </script>
+  </body>
+</html>

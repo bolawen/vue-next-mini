@@ -14,7 +14,7 @@ export function isSameVNodeType(n1, n2) {
   return n1.key === n2.key && n1.type === n2.type;
 }
 
-export function createVNode(type, props, children?) {
+export function createVNode(type, props?, children?) {
   if (props) {
     let { class: klass, style } = props;
     if (klass && !isString(klass)) {
@@ -36,10 +36,27 @@ function createBaseVNode(type, props, children, shapeFlag) {
     type,
     props,
     children,
-    shapeFlag
+    shapeFlag,
+    key: props.key || null
   };
   normalizeChildren(vnode, children);
   return vnode;
+}
+
+export function normalizeVNode(child) {
+  if (child == null || typeof child === 'boolean') {
+    return createVNode(Comment);
+  } else if (isArray(child)) {
+    return createVNode(Fragment, null, child.slice());
+  } else if (typeof child === 'object') {
+    return cloneIfMounted(child);
+  } else {
+    return createVNode(Text, null, String(child));
+  }
+}
+
+export function cloneIfMounted(child) {
+  return child;
 }
 
 export function normalizeChildren(vnode, children) {
