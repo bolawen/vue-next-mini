@@ -162,6 +162,7 @@ export function baseCreateRenderer(options) {
       // 2. 设置 Text
       hostSetElementText(el, vnode.children);
     } else if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+      mountChildren(vnode.children, el, anchor);
     }
     if (props) {
       // 3. 设置 Props
@@ -213,6 +214,7 @@ export function baseCreateRenderer(options) {
         // 新节点不为文本节点 && 旧节点为数组节点
         if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
           // 新节点为数组节点 && 旧节点为数组节点 则 Diff 运算
+          patchKeyedChildren(c1, c2, container, anchor);
         } else {
           // 新节点为数组节点 & 旧节点不为数组节点 则卸载旧子节点
         }
@@ -227,12 +229,55 @@ export function baseCreateRenderer(options) {
     }
   };
 
-  const patchKeyedChildren = () => {
-    // 1. 从左往右遍历
+  const patchKeyedChildren = (c1, c2, container, parentAnchor) => {
+    let i = 0;
+    let l2 = c2.length;
+    let e1 = c1.length - 1;
+    let e2 = l2 - 1;
+    // 1. 从左往右遍历 [a,b,c] => [a,b,d,e]
+    while (i <= e1 && i <= e2) {
+      const n1 = c1[i];
+      const n2 = (c2[i] = normalizeVNode(c2[i]));
+      if (isSameVNodeType(n1, n2)) {
+        patch(n1, n2, container, null);
+      } else {
+        break;
+      }
+      i++;
+    }
     // 2. 从右往左遍历
+    while (i <= e1 && i <= e2) {
+      const n1 = c1[e1];
+      const n2 = (c2[e2] = normalizeVNode(c2[e2]));
+      if (isSameVNodeType(n1, n2)) {
+        patch(n1, n2, container, null);
+      } else {
+        break;
+      }
+      e1--;
+      e2--;
+    }
     // 3. 新节点多于旧节点时, 挂载新节点
+    if (i > e1) {
+      if (i <= e2) {
+        const nextPos = e2 + 1;
+        const anchor = nextPos < l2 ? c2[nextPos].el : parentAnchor;
+        while (i <= e2) {
+          patch(null, (c2[i] = normalizeVNode(c2[i])), container, anchor);
+          i++;
+        }
+      }
+    }
     // 4. 旧节点多语新节点时, 卸载旧节点
+    else if (i > e2) {
+      while (i <= e1) {
+        unmount(c1[i]);
+        i++;
+      }
+    }
     // 5. 乱序
+    else {
+    }
   };
 
   const patchUnkeyedChildren = () => {};

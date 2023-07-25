@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vue3 Diff</title>
+    <script type="importmap">
+      {
+        "imports": {
+          "vue": "../packages/vue/dist/vue.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module">
+      import { h, render } from 'vue';
+
+      const n1 = h('ul', [
+        h(
+          'li',
+          {
+            key: 1
+          },
+          'a'
+        ),
+        h(
+          'li',
+          {
+            key: 2
+          },
+          'b'
+        ),
+        h(
+          'li',
+          {
+            key: 3
+          },
+          'c'
+        ),
+        h(
+          'li',
+          {
+            key: 4
+          },
+          'd'
+        ),
+        h(
+          'li',
+          {
+            key: 5
+          },
+          'e'
+        ),
+        h(
+          'li',
+          {
+            key: 6
+          },
+          'f'
+        ),
+        h(
+          'li',
+          {
+            key: 7
+          },
+          'g'
+        )
+      ]);
+
+      render(n1, document.querySelector('#app'));
+
+      setTimeout(() => {
+        const n2 = h('ul', [
+          h(
+            'li',
+            {
+              key: 1
+            },
+            'a'
+          ),
+          h(
+            'li',
+            {
+              key: 2
+            },
+            'b'
+          ),
+          h(
+            'li',
+            {
+              key: 5
+            },
+            'e'
+          ),
+          h(
+            'li',
+            {
+              key: 4
+            },
+            'd'
+          ),
+          h(
+            'li',
+            {
+              key: 3
+            },
+            'c'
+          ),
+          h(
+            'li',
+            {
+              key: 8
+            },
+            'h'
+          ),
+          h(
+            'li',
+            {
+              key: 6
+            },
+            'f'
+          ),
+          h(
+            'li',
+            {
+              key: 7
+            },
+            'g'
+          )
+        ]);
+        render(n2, document.querySelector('#app'));
+      }, 3000);
+    </script>
+  </body>
+</html>

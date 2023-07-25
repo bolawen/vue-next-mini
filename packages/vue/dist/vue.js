@@ -491,7 +491,7 @@ function createBaseVNode(type, props, children, shapeFlag) {
         props: props,
         children: children,
         shapeFlag: shapeFlag,
-        key: props.key || null
+        key: (props === null || props === void 0 ? void 0 : props.key) || null
     };
     normalizeChildren(vnode, children);
     return vnode;
@@ -766,7 +766,7 @@ function baseCreateRenderer(options) {
             mountChildren(n2.children, container, anchor);
         }
         else {
-            patchChildren(n1, n2, container);
+            patchChildren(n1, n2, container, anchor);
         }
     };
     var processElement = function (n1, n2, container, anchor) {
@@ -834,6 +834,9 @@ function baseCreateRenderer(options) {
             // 2. 设置 Text
             hostSetElementText(el, vnode.children);
         }
+        else if (shapeFlag & 16 /* ShapeFlags.ARRAY_CHILDREN */) {
+            mountChildren(vnode.children, el, anchor);
+        }
         if (props) {
             // 3. 设置 Props
             for (var key in props) {
@@ -847,7 +850,7 @@ function baseCreateRenderer(options) {
         var el = (n2.el = n1.el);
         var oldProps = n1.props || EMPTY_OBJ;
         var newProps = n2.props || EMPTY_OBJ;
-        patchChildren(n1, n2, el);
+        patchChildren(n1, n2, el, null);
         patchProps(el, n2, oldProps, newProps);
     };
     var mountChildren = function (children, container, anchor) {
@@ -872,7 +875,13 @@ function baseCreateRenderer(options) {
         }
         else {
             // 新节点不为文本节点
-            if (prevShapFlag & 16 /* ShapeFlags.ARRAY_CHILDREN */) ;
+            if (prevShapFlag & 16 /* ShapeFlags.ARRAY_CHILDREN */) {
+                // 新节点不为文本节点 && 旧节点为数组节点
+                if (shapeFlag & 16 /* ShapeFlags.ARRAY_CHILDREN */) {
+                    // 新节点为数组节点 && 旧节点为数组节点 则 Diff 运算
+                    patchKeyedChildren(c1, c2, container, anchor);
+                }
+            }
             else {
                 if (prevShapFlag & 8 /* ShapeFlags.TEXT_CHILDREN */) {
                     // 新节点不为文本节点 && 旧节点为文本节点 则下载旧子节点
@@ -880,6 +889,57 @@ function baseCreateRenderer(options) {
                 }
             }
         }
+    };
+    var patchKeyedChildren = function (c1, c2, container, parentAnchor) {
+        var i = 0;
+        var l2 = c2.length;
+        var e1 = c1.length - 1;
+        var e2 = l2 - 1;
+        // 1. 从左往右遍历 [a,b,c] => [a,b,d,e]
+        while (i <= e1 && i <= e2) {
+            var n1 = c1[i];
+            var n2 = (c2[i] = normalizeVNode(c2[i]));
+            if (isSameVNodeType(n1, n2)) {
+                patch(n1, n2, container, null);
+            }
+            else {
+                break;
+            }
+            i++;
+        }
+        // 2. 从右往左遍历
+        while (i <= e1 && i <= e2) {
+            var n1 = c1[e1];
+            var n2 = (c2[e2] = normalizeVNode(c2[e2]));
+            if (isSameVNodeType(n1, n2)) {
+                patch(n1, n2, container, null);
+            }
+            else {
+                break;
+            }
+            e1--;
+            e2--;
+        }
+        // 3. 新节点多于旧节点时, 挂载新节点
+        if (i > e1) {
+            if (i <= e2) {
+                var nextPos = e2 + 1;
+                var anchor = nextPos < l2 ? c2[nextPos].el : parentAnchor;
+                while (i <= e2) {
+                    patch(null, (c2[i] = normalizeVNode(c2[i])), container, anchor);
+                    i++;
+                }
+            }
+        }
+        // 4. 旧节点多语新节点时, 卸载旧节点
+        else if (i > e2) {
+            while (i <= e1) {
+                unmount(c1[i]);
+                i++;
+            }
+        }
+        // 5. 乱序
+        else ;
     };
     var patchProps = function (el, vnode, oldProps, newProps) {
         if (oldProps !== newProps) {
