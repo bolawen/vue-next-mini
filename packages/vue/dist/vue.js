@@ -939,7 +939,82 @@ function baseCreateRenderer(options) {
             }
         }
         // 5. 乱序
-        else ;
+        else {
+            var s1 = i;
+            var s2 = i;
+            // 5.1 为**剩余新节点**构建`key (新节点的 key):index (新节点的索引)`的`Map` => `keyToNewIndexMap`
+            var keyToNewIndexMap = new Map();
+            for (i = s2; i <= e2; i++) {
+                var nextChild = (c2[i] = normalizeVNode(c2[i]));
+                if (nextChild.key != null) {
+                    keyToNewIndexMap.set(nextChild.key, i);
+                }
+            }
+            // 5.2 循环遍历剩下的旧节点,尝试修补匹配节点并删除不存在的节点, 记录需要匹配的节点数和已匹配的节点数, 创建一个需要匹配节点数长度的数组 `newIndexToOldIndexMap`, 初始化每个数组的下标的默认值为 `0`
+            var j = void 0;
+            var patched = 0;
+            var toBePatched = e2 - s2 + 1;
+            var moved = false;
+            var maxNewIndexSoFar = 0;
+            var newIndexToOldIndexMap = new Array(toBePatched);
+            for (i = 0; i < toBePatched; i++)
+                newIndexToOldIndexMap[i] = 0;
+            for (i = s1; i <= e1; i++) {
+                var prevChild = c1[i];
+                if (patched >= toBePatched) {
+                    unmount(prevChild);
+                    continue;
+                }
+                var newIndex = void 0;
+                if (prevChild.key != null) {
+                    newIndex = keyToNewIndexMap.get(prevChild.key);
+                }
+                else {
+                    for (j = s2; j <= e2; j++) {
+                        if (newIndexToOldIndexMap[j - s2] === 0 &&
+                            isSameVNodeType(prevChild, c2[j])) {
+                            newIndex = j;
+                            break;
+                        }
+                    }
+                }
+                if (newIndex === undefined) {
+                    unmount(prevChild);
+                }
+                else {
+                    newIndexToOldIndexMap[newIndex - s2] = i + 1;
+                    if (newIndex >= maxNewIndexSoFar) {
+                        maxNewIndexSoFar = newIndex;
+                    }
+                    else {
+                        moved = true;
+                    }
+                    patch(prevChild, c2[newIndex], container, null);
+                    patched++;
+                }
+            }
+            // 5.3 剩余旧节点遍历完毕后, 移动和挂载新节点
+            var increasingNewIndexSequence = moved
+                ? getSequence(newIndexToOldIndexMap)
+                : [];
+            j = increasingNewIndexSequence.length - 1;
+            for (i = toBePatched - 1; i >= 0; i--) {
+                var nextIndex = s2 + i;
+                var nextChild = c2[nextIndex];
+                var anchor = nextIndex + 1 < l2 ? c2[nextIndex + 1].el : parentAnchor;
+                if (newIndexToOldIndexMap[i] === 0) {
+                    patch(null, nextChild, container, anchor);
+                }
+                else if (moved) {
+                    if (j < 0 || i !== increasingNewIndexSequence[j]) {
+                        move(nextChild, container, anchor);
+                    }
+                    else {
+                        j--;
+                    }
+                }
+            }
+        }
     };
     var patchProps = function (el, vnode, oldProps, newProps) {
         if (oldProps !== newProps) {
@@ -959,6 +1034,10 @@ function baseCreateRenderer(options) {
             }
         }
     };
+    var move = function (vnode, container, anchor) {
+        var el = vnode.el;
+        hostInsert(el, container, anchor);
+    };
     var unmount = function (vnode) {
         hostRemove(vnode.el);
     };
@@ -976,6 +1055,35 @@ function baseCreateRenderer(options) {
     return {
         render: render
     };
+}
+function getSequence(nums) {
+    var len = 1;
+    var length = nums.length;
+    var d = new Array(nums.length + 1);
+    d[len] = 0;
+    for (var i = 1; i < length; i++) {
+        var num = nums[i];
+        if (nums[d[len]] < num) {
+            d[++len] = i;
+        }
+        else {
+            var left = 1;
+            var right = len;
+            var pos = 0;
+            while (left <= right) {
+                var middle = (left + right) >> 1;
+                if (nums[d[middle]] < num) {
+                    pos = middle;
+                    left = middle + 1;
+                }
+                else {
+                    right = middle - 1;
+                }
+            }
+            d[pos + 1] = i;
+        }
+    }
+    return d.filter(function (i) { return i != null; });
 }
 
 var renderer;

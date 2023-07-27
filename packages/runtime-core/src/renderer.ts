@@ -277,10 +277,82 @@ export function baseCreateRenderer(options) {
     }
     // 5. 乱序
     else {
+      const s1 = i;
+      const s2 = i;
+
+      // 5.1 为**剩余新节点**构建`key (新节点的 key):index (新节点的索引)`的`Map` => `keyToNewIndexMap`
+      const keyToNewIndexMap: Map<string | number | symbol, number> = new Map();
+      for (i = s2; i <= e2; i++) {
+        const nextChild = (c2[i] = normalizeVNode(c2[i]));
+        if (nextChild.key != null) {
+          keyToNewIndexMap.set(nextChild.key, i);
+        }
+      }
+
+      // 5.2 循环遍历剩下的旧节点,尝试修补匹配节点并删除不存在的节点, 记录需要匹配的节点数和已匹配的节点数, 创建一个需要匹配节点数长度的数组 `newIndexToOldIndexMap`, 初始化每个数组的下标的默认值为 `0`
+      let j;
+      let patched = 0;
+      const toBePatched = e2 - s2 + 1;
+      let moved = false;
+      let maxNewIndexSoFar = 0;
+      const newIndexToOldIndexMap = new Array(toBePatched);
+      for (i = 0; i < toBePatched; i++) newIndexToOldIndexMap[i] = 0;
+
+      for (i = s1; i <= e1; i++) {
+        const prevChild = c1[i];
+        if (patched >= toBePatched) {
+          unmount(prevChild);
+          continue;
+        }
+        let newIndex;
+        if (prevChild.key != null) {
+          newIndex = keyToNewIndexMap.get(prevChild.key);
+        } else {
+          for (j = s2; j <= e2; j++) {
+            if (
+              newIndexToOldIndexMap[j - s2] === 0 &&
+              isSameVNodeType(prevChild, c2[j])
+            ) {
+              newIndex = j;
+              break;
+            }
+          }
+        }
+        if (newIndex === undefined) {
+          unmount(prevChild);
+        } else {
+          newIndexToOldIndexMap[newIndex - s2] = i + 1;
+          if (newIndex >= maxNewIndexSoFar) {
+            maxNewIndexSoFar = newIndex;
+          } else {
+            moved = true;
+          }
+          patch(prevChild, c2[newIndex], container, null);
+          patched++;
+        }
+      }
+
+      // 5.3 剩余旧节点遍历完毕后, 移动和挂载新节点
+      const increasingNewIndexSequence = moved
+        ? getSequence(newIndexToOldIndexMap)
+        : [];
+      j = increasingNewIndexSequence.length - 1;
+      for (i = toBePatched - 1; i >= 0; i--) {
+        const nextIndex = s2 + i;
+        const nextChild = c2[nextIndex];
+        const anchor = nextIndex + 1 < l2 ? c2[nextIndex + 1].el : parentAnchor;
+        if (newIndexToOldIndexMap[i] === 0) {
+          patch(null, nextChild, container, anchor);
+        } else if (moved) {
+          if (j < 0 || i !== increasingNewIndexSequence[j]) {
+            move(nextChild, container, anchor);
+          } else {
+            j--;
+          }
+        }
+      }
     }
   };
-
-  const patchUnkeyedChildren = () => {};
 
   const patchProps = (el, vnode, oldProps, newProps) => {
     if (oldProps !== newProps) {
@@ -301,6 +373,11 @@ export function baseCreateRenderer(options) {
     }
   };
 
+  const move = (vnode, container, anchor) => {
+    const { el } = vnode;
+    hostInsert(el, container, anchor);
+  };
+
   const unmount = vnode => {
     hostRemove(vnode.el as Node);
   };
@@ -318,4 +395,32 @@ export function baseCreateRenderer(options) {
   return {
     render
   };
+}
+
+function getSequence(nums) {
+  let len = 1;
+  const { length } = nums;
+  const d = new Array(nums.length + 1);
+  d[len] = 0;
+  for (let i = 1; i < length; i++) {
+    const num = nums[i];
+    if (nums[d[len]] < num) {
+      d[++len] = i;
+    } else {
+      let left = 1;
+      let right = len;
+      let pos = 0;
+      while (left <= right) {
+        let middle = (left + right) >> 1;
+        if (nums[d[middle]] < num) {
+          pos = middle;
+          left = middle + 1;
+        } else {
+          right = middle - 1;
+        }
+      }
+      d[pos + 1] = i;
+    }
+  }
+  return d.filter(i => i != null);
 }
