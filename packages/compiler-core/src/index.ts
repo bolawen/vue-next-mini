@@ -1,2 +1,1 @@
-const a = 3;
-const b = 4;
+import { baseCompile } from './compile';
