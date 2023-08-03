@@ -43,6 +43,8 @@ function createBaseVNode(type, props, children, shapeFlag) {
   return vnode;
 }
 
+export { createVNode as createElementVNode };
+
 export function normalizeVNode(child) {
   if (child == null || typeof child === 'boolean') {
     return createVNode(Comment);

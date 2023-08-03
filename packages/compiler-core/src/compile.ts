@@ -3,9 +3,11 @@ import { baseParse } from './parse';
 import { transform } from './transform';
 import { transformText } from './transforms/transformText';
 import { transformElement } from './transforms/transformElement';
+import { generate } from './codegen';
 
 export function baseCompile(template, options = {}) {
   const ast = baseParse(template);
+
   transform(
     ast,
     extend(options, {
@@ -13,7 +15,5 @@ export function baseCompile(template, options = {}) {
     })
   );
 
-  console.log('ast', ast);
-  console.log('ast', JSON.stringify(ast));
-  return {};
+  return generate(ast);
 }

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vue3 Next Mini</title>
+    <script src="../packages/vue/dist/vue.iife.js"></script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script>
+      const { h, render, compile } = Vue;
+      const template = `<div> Hellow World </div>`;
+
+      const { code } = compile(template);
+      const renderFn = new Function(code)();
+
+      const component = {
+        render: renderFn
+      };
+
+      const vnode = h(component);
+      render(vnode, document.querySelector('#app'));
+    </script>
+  </body>
+</html>

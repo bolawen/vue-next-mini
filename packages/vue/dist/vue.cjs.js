@@ -1,3 +1,5 @@
+'use strict';
+
 /******************************************************************************
 Copyright (c) Microsoft Corporation.
 
@@ -1607,5 +1609,30 @@ function compile(template, options) {
     return baseCompile(template, options);
 }
 
-export { Comment, Fragment, Text, baseCreateRenderer, cloneIfMounted, compile, computed, createVNode as createElementVNode, createRenderer, createVNode, effect, flushJobs, flushPostFlushCbs, h, isSameVNodeType, isVNode, normalizeChildren, normalizeVNode, queueFlush, queueJob, queuePostFlushCb, reactive, ref, render, traverse, watch };
-//# sourceMappingURL=vue.js.map
+exports.Comment = Comment;
+exports.Fragment = Fragment;
+exports.Text = Text;
+exports.baseCreateRenderer = baseCreateRenderer;
+exports.cloneIfMounted = cloneIfMounted;
+exports.compile = compile;
+exports.computed = computed;
+exports.createElementVNode = createVNode;
+exports.createRenderer = createRenderer;
+exports.createVNode = createVNode;
+exports.effect = effect;
+exports.flushJobs = flushJobs;
+exports.flushPostFlushCbs = flushPostFlushCbs;
+exports.h = h;
+exports.isSameVNodeType = isSameVNodeType;
+exports.isVNode = isVNode;
+exports.normalizeChildren = normalizeChildren;
+exports.normalizeVNode = normalizeVNode;
+exports.queueFlush = queueFlush;
+exports.queueJob = queueJob;
+exports.queuePostFlushCb = queuePostFlushCb;
+exports.reactive = reactive;
+exports.ref = ref;
+exports.render = render;
+exports.traverse = traverse;
+exports.watch = watch;
+//# sourceMappingURL=vue.cjs.js.map

@@ -1,4 +1,4 @@
-import { CREATE_ELEMENT_VNODE } from './runtimeHelper';
+import { CREATE_ELEMENT_VNODE, CREATE_VNODE } from './runtimeHelper';
 
 export const enum NodeTypes {
   ROOT,
@@ -52,6 +52,10 @@ export function createVNodeCall(context, tag?, props?, children?) {
     props,
     children
   };
+}
+
+export function getVNodeHelper(ssr, isComponent) {
+  return ssr || isComponent ? CREATE_VNODE : CREATE_ELEMENT_VNODE;
 }
 
 export function createCompoundExpression(children, loc) {
