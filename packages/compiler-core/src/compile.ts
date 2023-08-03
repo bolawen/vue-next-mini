@@ -15,5 +15,7 @@ export function baseCompile(template, options = {}) {
     })
   );
 
+  console.log(ast);
+
   return generate(ast);
 }

@@ -12,8 +12,7 @@
       const { h, render, compile } = Vue;
       const template = `<div> Hellow World </div>`;
 
-      const { code } = compile(template);
-      const renderFn = new Function(code)();
+      const renderFn = compile(template);
 
       const component = {
         render: renderFn

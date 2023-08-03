@@ -1600,6 +1600,7 @@ function baseCompile(template, options) {
     transform(ast, extend(options, {
         nodeTransforms: [transformElement, transformText]
     }));
+    console.log(ast);
     return generate(ast);
 }
 
@@ -1607,5 +1608,11 @@ function compile(template, options) {
     return baseCompile(template, options);
 }
 
-export { Comment, Fragment, Text, baseCreateRenderer, cloneIfMounted, compile, computed, createVNode as createElementVNode, createRenderer, createVNode, effect, flushJobs, flushPostFlushCbs, h, isSameVNodeType, isVNode, normalizeChildren, normalizeVNode, queueFlush, queueJob, queuePostFlushCb, reactive, ref, render, traverse, watch };
+function compileToFunction(template, options) {
+    var code = compile(template, options).code;
+    var render = new Function(code)();
+    return render;
+}
+
+export { Comment, Fragment, Text, baseCreateRenderer, cloneIfMounted, compileToFunction as compile, computed, createVNode as createElementVNode, createRenderer, createVNode, effect, flushJobs, flushPostFlushCbs, h, isSameVNodeType, isVNode, normalizeChildren, normalizeVNode, queueFlush, queueJob, queuePostFlushCb, reactive, ref, render, traverse, watch };
 //# sourceMappingURL=vue.js.map

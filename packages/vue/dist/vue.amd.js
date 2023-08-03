@@ -1602,6 +1602,7 @@ define(['exports'], (function (exports) { 'use strict';
         transform(ast, extend(options, {
             nodeTransforms: [transformElement, transformText]
         }));
+        console.log(ast);
         return generate(ast);
     }
 
@@ -1609,12 +1610,18 @@ define(['exports'], (function (exports) { 'use strict';
         return baseCompile(template, options);
     }
 
+    function compileToFunction(template, options) {
+        var code = compile(template, options).code;
+        var render = new Function(code)();
+        return render;
+    }
+
     exports.Comment = Comment;
     exports.Fragment = Fragment;
     exports.Text = Text;
     exports.baseCreateRenderer = baseCreateRenderer;
     exports.cloneIfMounted = cloneIfMounted;
-    exports.compile = compile;
+    exports.compile = compileToFunction;
     exports.computed = computed;
     exports.createElementVNode = createVNode;
     exports.createRenderer = createRenderer;
