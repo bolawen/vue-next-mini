@@ -170,7 +170,7 @@ define(['exports'], (function (exports) { 'use strict';
         advanceBy(context, close.length);
         return {
             type: 5 /* NodeTypes.INTERPOLATION */,
-            context: {
+            content: {
                 type: 4 /* NodeTypes.SIMPLE_EXPRESSION */,
                 isStatic: false,
                 content: content
@@ -484,6 +484,7 @@ define(['exports'], (function (exports) { 'use strict';
     }
     function genInterpolation(node, context) {
         var push = context.push, helper = context.helper;
+        console.log("node", node);
         push("".concat(helper(TO_DISPLAY_STRING), "("));
         genNode(node.content, context);
         push(')');

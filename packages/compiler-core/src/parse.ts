@@ -104,7 +104,7 @@ export function parseInterpolation(context) {
 
   return {
     type: NodeTypes.INTERPOLATION,
-    context: {
+    content: {
       type: NodeTypes.SIMPLE_EXPRESSION,
       isStatic: false,
       content
