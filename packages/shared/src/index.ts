@@ -1,3 +1,5 @@
+export { toDisplayString } from './toDisplayString';
+
 export const EMPTY_OBJ = {};
 export const EMPTY_ARR = [];
 

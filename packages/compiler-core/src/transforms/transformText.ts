@@ -1,5 +1,5 @@
-import { NodeTypes } from '../ast';
 import { isText } from '../utils';
+import { NodeTypes, createCompoundExpression } from '../ast';
 
 export const transformText = (node, context) => {
   if (
@@ -19,7 +19,7 @@ export const transformText = (node, context) => {
 
             if (isText(next)) {
               if (!currentContainer) {
-                currentContainer = children[i] = createCompundExpression(
+                currentContainer = children[i] = createCompoundExpression(
                   [child],
                   child.loc
                 );
@@ -38,7 +38,3 @@ export const transformText = (node, context) => {
     };
   }
 };
-
-function createCompundExpression(arg0: any[], loc: any): any {
-  throw new Error('Function not implemented.');
-}

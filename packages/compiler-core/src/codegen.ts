@@ -1,6 +1,6 @@
 import { isArray, isString } from '@vue/shared';
 import { NodeTypes, getVNodeHelper } from './ast';
-import { helperNameMap } from './runtimeHelper';
+import { TO_DISPLAY_STRING, helperNameMap } from './runtimeHelper';
 
 const aliasHelper = s => `${helperNameMap[s]}: _${helperNameMap[s]}`;
 
@@ -48,6 +48,9 @@ export function generate(ast, options?) {
   push(`function ${functionName}(${signature}) {`);
   indent();
 
+  push(`with (_ctx) {`);
+  indent();
+
   const hasHelpers = ast.helpers.length > 0;
   if (hasHelpers) {
     push(`const { ${ast.helpers.map(aliasHelper).join(', ')} } = _Vue`);
@@ -62,6 +65,9 @@ export function generate(ast, options?) {
   } else {
     push(`null`);
   }
+
+  deindent();
+  push('}');
 
   deindent();
   push('}');
@@ -87,6 +93,15 @@ function genNode(node, context) {
       break;
     case NodeTypes.TEXT:
       genText(node, context);
+      break;
+    case NodeTypes.SIMPLE_EXPRESSION:
+      genExpression(node, context);
+      break;
+    case NodeTypes.INTERPOLATION:
+      genInterpolation(node, context);
+      break;
+    case NodeTypes.COMPOUND_EXPRESSION:
+      genCompundExpression(node, context);
       break;
   }
 }
@@ -114,6 +129,18 @@ function genVNodeCall(node, context) {
 
 function genText(node, context) {
   context.push(JSON.stringify(node.content));
+}
+
+function genExpression(node, context) {
+  const { content, isStatic } = node;
+  context.push(isStatic ? JSON.stringify(content) : content);
+}
+
+function genInterpolation(node, context) {
+  const { push, helper } = context;
+  push(`${helper(TO_DISPLAY_STRING)}(`);
+  genNode(node.content, context);
+  push(')');
 }
 
 function genNullableArgs(args) {
@@ -150,4 +177,15 @@ function genNodeListArray(nodes, context) {
   context.push('[');
   genNodeList(nodes, context);
   context.push(']');
+}
+
+function genCompundExpression(node, context) {
+  for (let i = 0; i < node.children.length; i++) {
+    const child = node.children[i];
+    if (isString(child)) {
+      context.push(child);
+    } else {
+      genNode(child, context);
+    }
+  }
 }

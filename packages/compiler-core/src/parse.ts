@@ -37,7 +37,7 @@ export function parseChildren(context, mode, ancestors) {
     const s = context.source;
     let node;
     if (startsWith(s, '{{')) {
-      // 插值
+      node = parseInterpolation(context);
     } else if (s[0] === '<') {
       if (/[a-z]/i.test(s[1])) {
         node = parseElement(context, ancestors);
@@ -91,6 +91,25 @@ export function parseElement(context, ancestors) {
   }
 
   return element;
+}
+
+export function parseInterpolation(context) {
+  const [open, close] = ['{{', '}}'];
+  advanceBy(context, open.length);
+
+  const closeIndex = context.source.indexOf(close, open.length);
+  const preTrimContent = parseTextData(context, closeIndex);
+  const content = preTrimContent.trim();
+  advanceBy(context, close.length);
+
+  return {
+    type: NodeTypes.INTERPOLATION,
+    context: {
+      type: NodeTypes.SIMPLE_EXPRESSION,
+      isStatic: false,
+      content
+    }
+  };
 }
 
 export function pushNode(nodes, node) {
