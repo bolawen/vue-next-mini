@@ -8,14 +8,14 @@ import { generate } from './codegen';
 export function baseCompile(template, options = {}) {
   const ast = baseParse(template);
 
+  console.log('ast', ast);
+
   transform(
     ast,
     extend(options, {
       nodeTransforms: [transformElement, transformText]
     })
   );
-
-  console.log('ast', ast);
 
   return generate(ast);
 }

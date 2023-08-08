@@ -138,12 +138,16 @@ export function parseTag(context, type) {
 
   advanceBy(context, match[0].length);
 
+  // 属性和指令的处理
+  advanceSpaces(context);
+  let props = parseAttributes(context, type);
+
   let isSelfClosing = startsWith(context.source, '/>');
   advanceBy(context, isSelfClosing ? 2 : 1);
 
   return {
     tag,
-    props: [],
+    props,
     children: [],
     type: NodeTypes.ELEMENT,
     tagType: ElementTypes.ELEMENT
@@ -159,4 +163,98 @@ export function parseTextData(context, length) {
   const rawText = context.source.slice(0, length);
   advanceBy(context, length);
   return rawText;
+}
+
+export function advanceSpaces(context) {
+  const match = /^[\t\r\n\f\s]+/.exec(context.source);
+  if (match) {
+    advanceBy(context, match[0].length);
+  }
+}
+
+export function parseAttributes(context, type) {
+  const props: any[] = [];
+  const attributeNames = new Set();
+
+  while (
+    context.source.length > 0 &&
+    !startsWith(context.source, '>') &&
+    !startsWith(context.source, '/>')
+  ) {
+    const attr = parseAttribute(context, attributeNames);
+    if (type === TagType.Start) {
+      props.push(attr);
+    }
+    advanceSpaces(context);
+  }
+
+  return props;
+}
+
+export function parseAttribute(context, nameSet) {
+  const match = /^[^\t\r\n\f />][^\t\r\n\f />=]*/.exec(context.source)!;
+  const name = match[0];
+  nameSet.add(name);
+  advanceBy(context, name.length);
+  let value: any = undefined;
+  if (/^[\t\r\n\f ]*=/.test(context.source)) {
+    advanceSpaces(context);
+    advanceBy(context, 1);
+    advanceSpaces(context);
+    value = parseAttributeValue(context);
+  }
+  // v- 指令
+  if (/^(v-[A-Za-z0-9-]|:|\.|@|#)/.test(name)) {
+    const match =
+      /(?:^v-([a-z0-9-]+))?(?:(?::|^\.|^@|^#)(\[[^\]]+\]|[^\.]+))?(.+)?$/i.exec(
+        name
+      )!;
+    let dirName = match[1];
+    return {
+      type: NodeTypes.DIRECTIVE,
+      name: dirName,
+      exp: value && {
+        type: NodeTypes.SIMPLE_EXPRESSION,
+        content: value.content,
+        isStatic: false,
+        loc: {}
+      },
+      art: undefined,
+      modifiers: undefined
+    };
+  }
+
+  return {
+    type: NodeTypes.ATTRIBUTE,
+    name,
+    value: value && {
+      type: NodeTypes.TEXT,
+      content: value.content,
+      loc: {}
+    },
+    loc: {}
+  };
+}
+
+export function parseAttributeValue(context) {
+  let content = '';
+
+  const quote = context.source[0];
+  const isQuoted = quote === `"` || quote === `'`;
+  if (isQuoted) {
+    advanceBy(context, 1);
+    const endIndex = context.source.indexOf(quote);
+    if (endIndex === -1) {
+      content = parseTextData(context, context.source.length);
+    } else {
+      content = parseTextData(context, endIndex);
+      advanceBy(context, 1);
+    }
+  }
+
+  return {
+    content,
+    loc: {},
+    isQuoted
+  };
 }

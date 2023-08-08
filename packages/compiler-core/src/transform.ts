@@ -1,3 +1,4 @@
+import { isString } from '@vue/shared';
 import { NodeTypes } from './ast';
 import { TO_DISPLAY_STRING } from './runtimeHelper';
 import { isSingleElementRoot } from './transforms/hoistStatic';
@@ -82,4 +83,9 @@ export function createRootCodegen(root) {
       root.codegenNode = child.codegenNode;
     }
   }
+}
+
+export function createStructuralDirectiveTransform(name, fn) {
+  const matches = isString(name) ? n => n === name : n => name.test(n);
+  return (node, context) => {};
 }

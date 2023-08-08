@@ -103,6 +103,9 @@ function genNode(node, context) {
     case NodeTypes.COMPOUND_EXPRESSION:
       genCompundExpression(node, context);
       break;
+    case NodeTypes.ELEMENT:
+      genNode(node.codegenNode, context);
+      break;
   }
 }
 
@@ -138,7 +141,6 @@ function genExpression(node, context) {
 
 function genInterpolation(node, context) {
   const { push, helper } = context;
-  console.log("node",node)
   push(`${helper(TO_DISPLAY_STRING)}(`);
   genNode(node.content, context);
   push(')');

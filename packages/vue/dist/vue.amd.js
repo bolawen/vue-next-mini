@@ -199,11 +199,14 @@ define(['exports'], (function (exports) { 'use strict';
         var match = /^<\/?([a-z][^\r\n\t\f />]*)/i.exec(context.source);
         var tag = match[1];
         advanceBy(context, match[0].length);
+        // 属性和指令的处理
+        advanceSpaces(context);
+        var props = parseAttributes(context, type);
         var isSelfClosing = startsWith(context.source, '/>');
         advanceBy(context, isSelfClosing ? 2 : 1);
         return {
             tag: tag,
-            props: [],
+            props: props,
             children: [],
             type: 1 /* NodeTypes.ELEMENT */,
             tagType: 0 /* ElementTypes.ELEMENT */
@@ -217,6 +220,87 @@ define(['exports'], (function (exports) { 'use strict';
         var rawText = context.source.slice(0, length);
         advanceBy(context, length);
         return rawText;
+    }
+    function advanceSpaces(context) {
+        var match = /^[\t\r\n\f\s]+/.exec(context.source);
+        if (match) {
+            advanceBy(context, match[0].length);
+        }
+    }
+    function parseAttributes(context, type) {
+        var props = [];
+        var attributeNames = new Set();
+        while (context.source.length > 0 &&
+            !startsWith(context.source, '>') &&
+            !startsWith(context.source, '/>')) {
+            var attr = parseAttribute(context, attributeNames);
+            if (type === TagType.Start) {
+                props.push(attr);
+            }
+            advanceSpaces(context);
+        }
+        return props;
+    }
+    function parseAttribute(context, nameSet) {
+        var match = /^[^\t\r\n\f />][^\t\r\n\f />=]*/.exec(context.source);
+        var name = match[0];
+        nameSet.add(name);
+        advanceBy(context, name.length);
+        var value = undefined;
+        if (/^[\t\r\n\f ]*=/.test(context.source)) {
+            advanceSpaces(context);
+            advanceBy(context, 1);
+            advanceSpaces(context);
+            value = parseAttributeValue(context);
+        }
+        // v- 指令
+        if (/^(v-[A-Za-z0-9-]|:|\.|@|#)/.test(name)) {
+            var match_1 = /(?:^v-([a-z0-9-]+))?(?:(?::|^\.|^@|^#)(\[[^\]]+\]|[^\.]+))?(.+)?$/i.exec(name);
+            var dirName = match_1[1];
+            return {
+                type: 7 /* NodeTypes.DIRECTIVE */,
+                name: dirName,
+                exp: value && {
+                    type: 4 /* NodeTypes.SIMPLE_EXPRESSION */,
+                    content: value.content,
+                    isStatic: false,
+                    loc: {}
+                },
+                art: undefined,
+                modifiers: undefined
+            };
+        }
+        return {
+            type: 6 /* NodeTypes.ATTRIBUTE */,
+            name: name,
+            value: value && {
+                type: 2 /* NodeTypes.TEXT */,
+                content: value.content,
+                loc: {}
+            },
+            loc: {}
+        };
+    }
+    function parseAttributeValue(context) {
+        var content = '';
+        var quote = context.source[0];
+        var isQuoted = quote === "\"" || quote === "'";
+        if (isQuoted) {
+            advanceBy(context, 1);
+            var endIndex = context.source.indexOf(quote);
+            if (endIndex === -1) {
+                content = parseTextData(context, context.source.length);
+            }
+            else {
+                content = parseTextData(context, endIndex);
+                advanceBy(context, 1);
+            }
+        }
+        return {
+            content: content,
+            loc: {},
+            isQuoted: isQuoted
+        };
     }
 
     var _a;
@@ -464,6 +548,9 @@ define(['exports'], (function (exports) { 'use strict';
             case 8 /* NodeTypes.COMPOUND_EXPRESSION */:
                 genCompundExpression(node, context);
                 break;
+            case 1 /* NodeTypes.ELEMENT */:
+                genNode(node.codegenNode, context);
+                break;
         }
     }
     function genVNodeCall(node, context) {
@@ -484,7 +571,6 @@ define(['exports'], (function (exports) { 'use strict';
     }
     function genInterpolation(node, context) {
         var push = context.push, helper = context.helper;
-        console.log("node", node);
         push("".concat(helper(TO_DISPLAY_STRING), "("));
         genNode(node.content, context);
         push(')');
@@ -536,10 +622,10 @@ define(['exports'], (function (exports) { 'use strict';
     function baseCompile(template, options) {
         if (options === void 0) { options = {}; }
         var ast = baseParse(template);
+        console.log('ast', ast);
         transform(ast, extend(options, {
             nodeTransforms: [transformElement, transformText]
         }));
-        console.log('ast', ast);
         return generate(ast);
     }
 
