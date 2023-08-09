@@ -1,3 +1,4 @@
+import { isString } from '@vue/shared';
 import { CREATE_ELEMENT_VNODE, CREATE_VNODE } from './runtimeHelper';
 
 export const enum NodeTypes {
@@ -63,5 +64,56 @@ export function createCompoundExpression(children, loc) {
     type: NodeTypes.COMPOUND_EXPRESSION,
     loc,
     children
+  };
+}
+
+export function createConditionalExpression(
+  test,
+  consequent,
+  alternate,
+  newline?
+) {
+  return {
+    type: NodeTypes.JS_CONDITIONAL_EXPRESSION,
+    test,
+    consequent,
+    alternate,
+    newline,
+    loc: {}
+  };
+}
+
+export function createObjectProperty(key, value) {
+  return {
+    type: NodeTypes.JS_PROPERTY,
+    loc: {},
+    key: isString(key) ? createSimpleExpression(key, true) : key,
+    value
+  };
+}
+
+export function createObjectExpression(properties) {
+  return {
+    type: NodeTypes.JS_OBJECT_EXPRESSION,
+    loc: {},
+    properties
+  };
+}
+
+export function createSimpleExpression(content, isStatic) {
+  return {
+    type: NodeTypes.SIMPLE_EXPRESSION,
+    loc: {},
+    content,
+    isStatic
+  };
+}
+
+export function createCallExpression(callee, args) {
+  return {
+    type: NodeTypes.JS_CACHE_EXPRESSION,
+    loc: {},
+    callee,
+    arguments: args
   };
 }

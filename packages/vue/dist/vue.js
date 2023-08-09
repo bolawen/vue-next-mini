@@ -303,10 +303,12 @@ function parseAttributeValue(context) {
 
 var _a;
 var CREATE_VNODE = Symbol('createVNode');
+var CREATE_COMMENT = Symbol('createCommentVNode');
 var TO_DISPLAY_STRING = Symbol('to_display_string');
 var CREATE_ELEMENT_VNODE = Symbol('createElementVNode');
 var helperNameMap = (_a = {},
     _a[CREATE_VNODE] = 'createVNode',
+    _a[CREATE_COMMENT] = 'createCommentVNode',
     _a[TO_DISPLAY_STRING] = 'toDisplayString',
     _a[CREATE_ELEMENT_VNODE] = 'createElementVNode',
     _a);
@@ -341,6 +343,9 @@ function createTransformContext(root, _a) {
             var count = context.helpers.get(name) || 0;
             context.helpers.set(name, count + 1);
             return name;
+        },
+        replaceNode: function (node) {
+            context.parent.children[context.childIndex] = context.currentNode = node;
         }
     };
     return context;
@@ -386,9 +391,26 @@ function createRootCodegen(root) {
         }
     }
 }
-
-function isText(node) {
-    return node.type === 5 /* NodeTypes.INTERPOLATION */ || node.type === 2 /* NodeTypes.TEXT */;
+function createStructuralDirectiveTransform(name, fn) {
+    var matches = isString(name) ? function (n) { return n === name; } : function (n) { return name.test(n); };
+    return function (node, context) {
+        if (node.type === 1 /* NodeTypes.ELEMENT */) {
+            var props = node.props;
+            var exitFns = [];
+            for (var i = 0; i < props.length; i++) {
+                var prop = props[i];
+                if (prop.type === 7 /* NodeTypes.DIRECTIVE */ && matches(prop.name)) {
+                    props.splice(i, 1);
+                    i--;
+                    var onExit = fn(node, prop, context);
+                    if (onExit) {
+                        exitFns.push(onExit);
+                    }
+                }
+            }
+            return exitFns;
+        }
+    };
 }
 
 function createVNodeCall(context, tag, props, children) {
@@ -411,6 +433,62 @@ function createCompoundExpression(children, loc) {
         loc: loc,
         children: children
     };
+}
+function createConditionalExpression(test, consequent, alternate, newline) {
+    return {
+        type: 19 /* NodeTypes.JS_CONDITIONAL_EXPRESSION */,
+        test: test,
+        consequent: consequent,
+        alternate: alternate,
+        newline: newline,
+        loc: {}
+    };
+}
+function createObjectProperty(key, value) {
+    return {
+        type: 16 /* NodeTypes.JS_PROPERTY */,
+        loc: {},
+        key: isString(key) ? createSimpleExpression(key, true) : key,
+        value: value
+    };
+}
+function createObjectExpression(properties) {
+    return {
+        type: 15 /* NodeTypes.JS_OBJECT_EXPRESSION */,
+        loc: {},
+        properties: properties
+    };
+}
+function createSimpleExpression(content, isStatic) {
+    return {
+        type: 4 /* NodeTypes.SIMPLE_EXPRESSION */,
+        loc: {},
+        content: content,
+        isStatic: isStatic
+    };
+}
+function createCallExpression(callee, args) {
+    return {
+        type: 20 /* NodeTypes.JS_CACHE_EXPRESSION */,
+        loc: {},
+        callee: callee,
+        arguments: args
+    };
+}
+
+function isText(node) {
+    return node.type === 5 /* NodeTypes.INTERPOLATION */ || node.type === 2 /* NodeTypes.TEXT */;
+}
+function injectProp(node, prop) {
+    var propsWithInjection;
+    var props = node.type === 13 /* NodeTypes.VNODE_CALL */ ? node.props : node.arguments[2];
+    if (props === null || isString(props)) {
+        propsWithInjection = createObjectExpression([prop]);
+    }
+    node.props = propsWithInjection;
+}
+function getMemoedVNodeCall(node) {
+    return node;
 }
 
 var transformText = function (node, context) {
@@ -617,13 +695,62 @@ function genCompundExpression(node, context) {
     }
 }
 
+var transformIf = createStructuralDirectiveTransform(/^(if|else|else-if)$/, function (node, dir, context) {
+    return processIf(node, dir, context, function (ifNode, branch, isRoot) {
+        var key = 0;
+        return function () {
+            if (isRoot) {
+                ifNode.codegenNode = createCodegenNodeForBranch(branch, key, context);
+            }
+        };
+    });
+});
+function processIf(node, dir, context, processCodegen) {
+    if (dir.name === 'if') {
+        var branch = createIfBranch(node, dir);
+        var ifNode = {
+            type: 9 /* NodeTypes.IF */,
+            loc: {},
+            branches: [branch]
+        };
+        context.replaceNode(ifNode);
+        if (processCodegen) {
+            return processCodegen(ifNode, branch, true);
+        }
+    }
+}
+function createIfBranch(node, dir) {
+    return {
+        type: 10 /* NodeTypes.IF_BRANCH */,
+        loc: {},
+        condition: dir.exp,
+        children: [node]
+    };
+}
+function createCodegenNodeForBranch(branch, keyIndex, context) {
+    if (branch.condition) {
+        return createConditionalExpression(branch.condition, createChildrenCodegenNode(branch, keyIndex), createCallExpression(context.helper(CREATE_COMMENT), ['"v-if"', 'true']));
+    }
+    else {
+        return createChildrenCodegenNode(branch, keyIndex);
+    }
+}
+function createChildrenCodegenNode(branch, keyIndex) {
+    var keyProperty = createObjectProperty("key", createSimpleExpression("".concat(keyIndex), false));
+    var children = branch.children;
+    var firstChild = children[0];
+    var ret = firstChild.codegenNode;
+    var vnodeCall = getMemoedVNodeCall(ret);
+    injectProp(vnodeCall, keyProperty);
+}
+
 function baseCompile(template, options) {
     if (options === void 0) { options = {}; }
     var ast = baseParse(template);
-    console.log('ast', ast);
     transform(ast, extend(options, {
-        nodeTransforms: [transformElement, transformText]
+        nodeTransforms: [transformElement, transformText, transformIf]
     }));
+    console.log('ast', ast);
     return generate(ast);
 }
 

@@ -30,6 +30,9 @@ export function createTransformContext(root, { nodeTransforms }) {
       const count = context.helpers.get(name) || 0;
       context.helpers.set(name, count + 1);
       return name;
+    },
+    replaceNode(node) {
+      context.parent.children[context.childIndex] = context.currentNode = node;
     }
   };
 
@@ -87,5 +90,22 @@ export function createRootCodegen(root) {
 
 export function createStructuralDirectiveTransform(name, fn) {
   const matches = isString(name) ? n => n === name : n => name.test(n);
-  return (node, context) => {};
+  return (node, context) => {
+    if (node.type === NodeTypes.ELEMENT) {
+      const { props } = node;
+      const exitFns: any[] = [];
+      for (let i = 0; i < props.length; i++) {
+        const prop = props[i];
+        if (prop.type === NodeTypes.DIRECTIVE && matches(prop.name)) {
+          props.splice(i, 1);
+          i--;
+          const onExit = fn(node, prop, context);
+          if (onExit) {
+            exitFns.push(onExit);
+          }
+        }
+      }
+      return exitFns;
+    }
+  };
 }
