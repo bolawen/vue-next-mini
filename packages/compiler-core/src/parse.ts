@@ -70,8 +70,8 @@ export function isEnd(context, mode, ancestors) {
   return !s;
 }
 
-export function startsWith(source, searchStaring) {
-  return source.startsWith(searchStaring);
+export function startsWith(source, searchString) {
+  return source.startsWith(searchString);
 }
 
 export function startsWithEndTagOpen(source, tag) {
