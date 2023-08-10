@@ -1,4 +1,4 @@
-import { isString } from '@vue/shared';
+import { isArray, isString } from '@vue/shared';
 import { NodeTypes } from './ast';
 import { TO_DISPLAY_STRING } from './runtimeHelper';
 import { isSingleElementRoot } from './transforms/hoistStatic';
@@ -47,17 +47,33 @@ export function traverseNode(node, context) {
   for (let i = 0; i < nodeTransforms.length; i++) {
     const onExit = nodeTransforms[i](node, context);
     if (onExit) {
-      exitFns.push(onExit);
+      if (isArray(onExit)) {
+        exitFns.push(...onExit);
+      } else {
+        exitFns.push(onExit);
+      }
+    }
+
+    if (!context.currentNode) {
+      return;
+    } else {
+      node = context.currentNode;
     }
   }
 
   switch (node.type) {
+    case NodeTypes.IF_BRANCH:
     case NodeTypes.ELEMENT:
     case NodeTypes.ROOT:
       traverseChildren(node, context);
       break;
     case NodeTypes.INTERPOLATION:
       context.helper(TO_DISPLAY_STRING);
+      break;
+    case NodeTypes.IF:
+      for (let i = 0; i < node.branches.length; i++) {
+        traverseNode(node.branches[i], context);
+      }
       break;
   }
 

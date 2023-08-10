@@ -360,16 +360,33 @@ var Vue = (function (exports) {
         for (var i_1 = 0; i_1 < nodeTransforms.length; i_1++) {
             var onExit = nodeTransforms[i_1](node, context);
             if (onExit) {
-                exitFns.push(onExit);
+                if (isArray(onExit)) {
+                    exitFns.push.apply(exitFns, __spreadArray([], __read(onExit), false));
+                }
+                else {
+                    exitFns.push(onExit);
+                }
+            }
+            if (!context.currentNode) {
+                return;
+            }
+            else {
+                node = context.currentNode;
             }
         }
         switch (node.type) {
+            case 10 /* NodeTypes.IF_BRANCH */:
             case 1 /* NodeTypes.ELEMENT */:
             case 0 /* NodeTypes.ROOT */:
                 traverseChildren(node, context);
                 break;
             case 5 /* NodeTypes.INTERPOLATION */:
                 context.helper(TO_DISPLAY_STRING);
+                break;
+            case 9 /* NodeTypes.IF */:
+                for (var i_2 = 0; i_2 < node.branches.length; i_2++) {
+                    traverseNode(node.branches[i_2], context);
+                }
                 break;
         }
         context.currentNode = node;

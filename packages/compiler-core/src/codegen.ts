@@ -106,6 +106,9 @@ function genNode(node, context) {
     case NodeTypes.ELEMENT:
       genNode(node.codegenNode, context);
       break;
+    case NodeTypes.JS_CONDITIONAL_EXPRESSION:
+      // genConditionalExpression(node, context);
+      break;
   }
 }
 
