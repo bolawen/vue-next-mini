@@ -76,4 +76,5 @@ function createChildrenCodegenNode(branch, keyIndex) {
   const vnodeCall = getMemoedVNodeCall(ret);
 
   injectProp(vnodeCall, keyProperty);
+  return ret;
 }

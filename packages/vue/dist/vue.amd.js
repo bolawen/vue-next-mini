@@ -144,8 +144,8 @@ define(['exports'], (function (exports) { 'use strict';
         }
         return !s;
     }
-    function startsWith(source, searchStaring) {
-        return source.startsWith(searchStaring);
+    function startsWith(source, searchString) {
+        return source.startsWith(searchString);
     }
     function startsWithEndTagOpen(source, tag) {
         return startsWith(source, '</');
@@ -488,7 +488,7 @@ define(['exports'], (function (exports) { 'use strict';
     }
     function createCallExpression(callee, args) {
         return {
-            type: 20 /* NodeTypes.JS_CACHE_EXPRESSION */,
+            type: 14 /* NodeTypes.JS_CALL_EXPRESSION */,
             loc: {},
             callee: callee,
             arguments: args
@@ -628,6 +628,10 @@ define(['exports'], (function (exports) { 'use strict';
     }
     function genNode(node, context) {
         switch (node.type) {
+            case 9 /* NodeTypes.IF */:
+            case 1 /* NodeTypes.ELEMENT */:
+                genNode(node.codegenNode, context);
+                break;
             case 13 /* NodeTypes.VNODE_CALL */:
                 genVNodeCall(node, context);
                 break;
@@ -645,6 +649,12 @@ define(['exports'], (function (exports) { 'use strict';
                 break;
             case 1 /* NodeTypes.ELEMENT */:
                 genNode(node.codegenNode, context);
+                break;
+            case 14 /* NodeTypes.JS_CALL_EXPRESSION */:
+                genCallExpression(node, context);
+                break;
+            case 19 /* NodeTypes.JS_CONDITIONAL_EXPRESSION */:
+                genConditionalExpression(node, context);
                 break;
         }
     }
@@ -713,6 +723,38 @@ define(['exports'], (function (exports) { 'use strict';
             }
         }
     }
+    function genConditionalExpression(node, context) {
+        var test = node.test, alternate = node.alternate, consequent = node.consequent, needNewLine = node.newline;
+        var push = context.push, indent = context.indent, deindent = context.deindent, newline = context.newline;
+        if (test.type === 4 /* NodeTypes.SIMPLE_EXPRESSION */) {
+            genExpression(test, context);
+        }
+        needNewLine && indent();
+        context.indentLevel++;
+        needNewLine || push(" ");
+        push("?");
+        genNode(consequent, context);
+        context.indentLevel--;
+        needNewLine && newline();
+        needNewLine || push(" ");
+        push(": ");
+        var isNested = alternate.type === 19 /* NodeTypes.JS_CONDITIONAL_EXPRESSION */;
+        if (!isNested) {
+            context.indentLevel++;
+        }
+        genNode(alternate, context);
+        if (!isNested) {
+            context.indentLevel--;
+        }
+        needNewLine && deindent(true);
+    }
+    function genCallExpression(node, context) {
+        var push = context.push, helper = context.helper;
+        var callee = isString(node.callee) ? node.callee : helper(node.callee);
+        push(callee + "(");
+        genNodeList(node.arguments, context);
+        push(")");
+    }
 
     var transformIf = createStructuralDirectiveTransform(/^(if|else|else-if)$/, function (node, dir, context) {
         return processIf(node, dir, context, function (ifNode, branch, isRoot) {
@@ -761,6 +803,7 @@ define(['exports'], (function (exports) { 'use strict';
         var ret = firstChild.codegenNode;
         var vnodeCall = getMemoedVNodeCall(ret);
         injectProp(vnodeCall, keyProperty);
+        return ret;
     }
 
     function baseCompile(template, options) {
@@ -769,7 +812,6 @@ define(['exports'], (function (exports) { 'use strict';
         transform(ast, extend(options, {
             nodeTransforms: [transformElement, transformText, transformIf]
         }));
-        console.log('ast', ast);
         return generate(ast);
     }
 
