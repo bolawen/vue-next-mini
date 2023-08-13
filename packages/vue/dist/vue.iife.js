@@ -816,15 +816,132 @@ var Vue = (function (exports) {
         return generate(ast);
     }
 
-    function compile(template, options) {
+    function compile$1(template, options) {
         return baseCompile(template, options);
     }
 
+    function injectHook(type, hook, target) {
+        if (target) {
+            target[type] = hook;
+            return hook;
+        }
+    }
+    var createHook = function (lifecycle) {
+        return function (hook, target) { return injectHook(lifecycle, hook, target); };
+    };
+    var onBeforeMount = createHook("bm" /* LifecycleHooks.BEFORE_MOUNT */);
+    var onMounted = createHook("m" /* LifecycleHooks.MOUNTED */);
+
+    function callHook(hook, proxy) {
+        hook.bind(proxy)();
+    }
+    function applyOptions(instance) {
+        var _a = instance.type, dataOptions = _a.data, beforeCreate = _a.beforeCreate, created = _a.created, beforeMount = _a.beforeMount, mounted = _a.mounted;
+        if (beforeCreate) {
+            callHook(beforeCreate, instance.data);
+        }
+        if (dataOptions) {
+            var data = dataOptions();
+            if (isObject(data)) {
+                instance.data = reactive(data);
+            }
+        }
+        if (created) {
+            callHook(created, instance.data);
+        }
+        function registerLifecycleHook(register, hook) {
+            if (isArray(hook)) {
+                hook.forEach(function (_hook) { return register(_hook.bind(instance.data), instance); });
+            }
+            else if (hook) {
+                register(hook.bind(instance.data), instance);
+            }
+        }
+        registerLifecycleHook(onBeforeMount, beforeMount);
+        registerLifecycleHook(onMounted, mounted);
+    }
+
+    var uid = 0;
+    var compile;
+    function createComponentInstance(vnode) {
+        var type = vnode.type;
+        var instance = {
+            uid: uid++,
+            type: type,
+            vnode: vnode,
+            effect: null,
+            render: null,
+            update: null,
+            subTree: null,
+            // lifecycle hooks
+            isMounted: false,
+            isUnmounted: false,
+            isDeactivated: false,
+            bc: null,
+            c: null,
+            bm: null,
+            m: null,
+            bu: null,
+            u: null,
+            um: null,
+            bum: null,
+            da: null,
+            a: null,
+            rtg: null,
+            rtc: null,
+            ec: null,
+            sp: null
+        };
+        return instance;
+    }
+    function setupComponent(instance) {
+        var isStateful = isStatefulComponent(instance);
+        var setupResult = isStateful ? setupStatefulComponent(instance) : undefined;
+        return setupResult;
+    }
+    function isStatefulComponent(instance) {
+        return instance.vnode.shapeFlag & 4 /* ShapeFlags.STATEFUL_COMPONENT */;
+    }
+    function setupStatefulComponent(instance) {
+        var Component = instance.type;
+        var setup = Component.setup;
+        if (setup) {
+            var setupResult = setup();
+            handleSetupResult(instance, setupResult);
+        }
+        else {
+            finishComponentSetup(instance);
+        }
+    }
+    function handleSetupResult(instance, setupResult) {
+        if (isFunction(setupResult)) {
+            instance.render = setupResult;
+        }
+        finishComponentSetup(instance);
+    }
+    function finishComponentSetup(instance) {
+        var Component = instance.type;
+        if (!instance.render) {
+            if (compile && !Component.render) {
+                if (Component.template) {
+                    var template = Component.template;
+                    Component.render = compile(template);
+                }
+            }
+            instance.render = Component.render;
+        }
+        applyOptions(instance);
+    }
+    function registerRuntimeCompiler(_compile) {
+        compile = _compile;
+    }
+
     function compileToFunction(template, options) {
-        var code = compile(template, options).code;
+        var code = compile$1(template, options).code;
         var render = new Function(code)();
         return render;
     }
+    registerRuntimeCompiler(compileToFunction);
 
     var createDep = function (effects) {
         var dep = new Set(effects);
@@ -1282,111 +1399,8 @@ var Vue = (function (exports) {
         vnode.children = children;
         vnode.shapeFlag |= type;
     }
-
-    function injectHook(type, hook, target) {
-        if (target) {
-            target[type] = hook;
-            return hook;
-        }
-    }
-    var createHook = function (lifecycle) {
-        return function (hook, target) { return injectHook(lifecycle, hook, target); };
-    };
-    var onBeforeMount = createHook("bm" /* LifecycleHooks.BEFORE_MOUNT */);
-    var onMounted = createHook("m" /* LifecycleHooks.MOUNTED */);
-
-    function callHook(hook, proxy) {
-        hook.bind(proxy)();
-    }
-    function applyOptions(instance) {
-        var _a = instance.type, dataOptions = _a.data, beforeCreate = _a.beforeCreate, created = _a.created, beforeMount = _a.beforeMount, mounted = _a.mounted;
-        if (beforeCreate) {
-            callHook(beforeCreate, instance.data);
-        }
-        if (dataOptions) {
-            var data = dataOptions();
-            if (isObject(data)) {
-                instance.data = reactive(data);
-            }
-        }
-        if (created) {
-            callHook(created, instance.data);
-        }
-        function registerLifecycleHook(register, hook) {
-            if (isArray(hook)) {
-                hook.forEach(function (_hook) { return register(_hook.bind(instance.data), instance); });
-            }
-            else if (hook) {
-                register(hook.bind(instance.data), instance);
-            }
-        }
-        registerLifecycleHook(onBeforeMount, beforeMount);
-        registerLifecycleHook(onMounted, mounted);
-    }
-
-    var uid = 0;
-    function createComponentInstance(vnode) {
-        var type = vnode.type;
-        var instance = {
-            uid: uid++,
-            type: type,
-            vnode: vnode,
-            effect: null,
-            render: null,
-            update: null,
-            subTree: null,
-            // lifecycle hooks
-            isMounted: false,
-            isUnmounted: false,
-            isDeactivated: false,
-            bc: null,
-            c: null,
-            bm: null,
-            m: null,
-            bu: null,
-            u: null,
-            um: null,
-            bum: null,
-            da: null,
-            a: null,
-            rtg: null,
-            rtc: null,
-            ec: null,
-            sp: null
-        };
-        return instance;
-    }
-    function setupComponent(instance) {
-        var isStateful = isStatefulComponent(instance);
-        var setupResult = isStateful ? setupStatefulComponent(instance) : undefined;
-        return setupResult;
-    }
-    function isStatefulComponent(instance) {
-        return instance.vnode.shapeFlag & 4 /* ShapeFlags.STATEFUL_COMPONENT */;
-    }
-    function setupStatefulComponent(instance) {
-        var Component = instance.type;
-        var setup = Component.setup;
-        if (setup) {
-            var setupResult = setup();
-            handleSetupResult(instance, setupResult);
-        }
-        else {
-            finishComponentSetup(instance);
-        }
-    }
-    function handleSetupResult(instance, setupResult) {
-        if (isFunction(setupResult)) {
-            instance.render = setupResult;
-        }
-        finishComponentSetup(instance);
-    }
-    function finishComponentSetup(instance) {
-        var Component = instance.type;
-        if (!instance.render) {
-            instance.render = Component.render;
-        }
-        applyOptions(instance);
+    function createCommentVNode(text) {
+        return createVNode(Comment, null, text);
     }
 
     var flushIndex = 0;
@@ -1456,6 +1470,21 @@ var Vue = (function (exports) {
             console.log(error);
         }
         return result;
+    }
+
+    function createAppAPI(render) {
+        return function createApp(rootComponent, rootProps) {
+            if (rootProps === void 0) { rootProps = null; }
+            var app = {
+                _component: rootComponent,
+                _container: null,
+                mount: function (rootContainer) {
+                    var vnode = createVNode(rootComponent, rootProps, null);
+                    render(vnode, rootContainer);
+                }
+            };
+            return app;
+        };
     }
 
     function createRenderer(options) {
@@ -1805,7 +1834,8 @@ var Vue = (function (exports) {
             container._vnode = vnode;
         };
         return {
-            render: render
+            render: render,
+            createApp: createAppAPI(render)
         };
     }
     function getSequence(nums) {
@@ -1851,6 +1881,31 @@ var Vue = (function (exports) {
         }
         (_a = ensureRenderer()).render.apply(_a, __spreadArray([], __read(args), false));
     };
+    var createApp = function () {
+        var _a;
+        var args = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            args[_i] = arguments[_i];
+        }
+        var app = (_a = ensureRenderer()).createApp.apply(_a, __spreadArray([], __read(args), false));
+        var mount = app.mount;
+        app.mount = function (containerOrSelector) {
+            var container = normalizeContainer(containerOrSelector);
+            if (!container) {
+                console.log('容器必须存在');
+                return;
+            }
+            mount(container);
+        };
+        return app;
+    };
+    function normalizeContainer(container) {
+        if (isString(container)) {
+            var res = document.querySelector(container);
+            return res;
+        }
+        return container;
+    }
 
     function h(type, propsOrChildren, children) {
         var l = arguments.length;
@@ -1965,6 +2020,8 @@ var Vue = (function (exports) {
     exports.cloneIfMounted = cloneIfMounted;
     exports.compile = compileToFunction;
     exports.computed = computed;
+    exports.createApp = createApp;
+    exports.createCommentVNode = createCommentVNode;
     exports.createElementVNode = createVNode;
     exports.createRenderer = createRenderer;
     exports.createVNode = createVNode;

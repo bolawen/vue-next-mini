@@ -77,3 +77,7 @@ export function normalizeChildren(vnode, children) {
   vnode.children = children;
   vnode.shapeFlag |= type;
 }
+
+export function createCommentVNode(text) {
+  return createVNode(Comment, null, text);
+}

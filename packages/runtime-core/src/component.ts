@@ -3,6 +3,7 @@ import { applyOptions } from './componentOptions';
 import { isFunction } from '@vue/shared';
 
 let uid = 0;
+let compile;
 
 export function createComponentInstance(vnode) {
   const type = vnode.type;
@@ -69,7 +70,17 @@ export function handleSetupResult(instance, setupResult) {
 export function finishComponentSetup(instance) {
   const Component = instance.type;
   if (!instance.render) {
+    if (compile && !Component.render) {
+      if (Component.template) {
+        const template = Component.template;
+        Component.render = compile(template);
+      }
+    }
     instance.render = Component.render;
   }
   applyOptions(instance);
+}
+
+export function registerRuntimeCompiler(_compile) {
+  compile = _compile;
 }

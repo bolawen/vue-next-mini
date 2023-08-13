@@ -10,10 +10,9 @@
     <div id="app"></div>
     <script>
       const { h, render, compile } = Vue;
-      const template = `<div>Hello World <h1 v-if="isShow">你好,世界</h1></div>`;
+      const template = `<div><h1 v-if="isShow">你好,世界</h1></div>`;
 
       const renderFn = compile(template);
-
       console.log('renderFn', renderFn);
 
       const component = {

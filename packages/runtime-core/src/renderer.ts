@@ -6,6 +6,7 @@ import { createComponentInstance, setupComponent } from './component';
 import { ReactiveEffect } from 'packages/reactivity/src/effect';
 import { queueJob } from './scheduler';
 import { renderComponentRoot } from './componentRenderUtils';
+import { createAppAPI } from './apiCreateApp';
 
 export function createRenderer(options) {
   return baseCreateRenderer(options);
@@ -393,7 +394,8 @@ export function baseCreateRenderer(options) {
     container._vnode = vnode;
   };
   return {
-    render
+    render,
+    createApp: createAppAPI(render)
   };
 }
 
